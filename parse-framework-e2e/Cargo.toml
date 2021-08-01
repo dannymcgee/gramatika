@@ -1,0 +1,10 @@
+[package]
+name = "parse-framework-e2e"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+parse-framework = { path = "../parse-framework" }
+parse-framework-macro = { path = "../parse-framework-macro" }
