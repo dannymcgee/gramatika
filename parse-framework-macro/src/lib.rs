@@ -72,7 +72,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 
 	let result: pm2::TokenStream = quote! {
 		impl#generics #ident#generics {
-			fn as_inner(&#lifetime self) -> (&#lifetime str, Span) {
+			fn as_inner(&#lifetime self) -> (&#lifetime str, ::parse_framework::Span) {
 				match self {#(
 					Self::#variant_ident(lexeme, span) => (*lexeme, *span)
 				),*}
@@ -83,6 +83,16 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 					Self::#variant_ident(#(#func_param_names),*)
 				}
 			)*
+		}
+
+		impl#generics ::parse_framework::Token for #ident#generics {
+			fn lexeme(&self) -> &str {
+				self.as_inner().0
+			}
+
+			fn span(&self) -> ::parse_framework::Span {
+				self.as_inner().1
+			}
 		}
 	};
 
