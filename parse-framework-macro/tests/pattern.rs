@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 #[macro_use]
 extern crate parse_framework_macro;
 #[macro_use]
@@ -21,34 +22,9 @@ enum Token<'a> {
 }
 
 fn main() {
-	if let Some(m) = Token::match_keyword("let") {
-		eprintln!(
-			"{:?}",
-			Token::keyword(m.as_str(), Span::new((0, m.start()), (0, m.end())))
-		);
-	}
-	if let Some(m) = Token::match_ident("foo") {
-		eprintln!(
-			"{:?}",
-			Token::ident(m.as_str(), Span::new((0, m.start()), (0, m.end())))
-		);
-	}
-	if let Some(m) = Token::match_punct(";") {
-		eprintln!(
-			"{:?}",
-			Token::punct(m.as_str(), Span::new((0, m.start()), (0, m.end())))
-		);
-	}
-	if let Some(m) = Token::match_operator("*") {
-		eprintln!(
-			"{:?}",
-			Token::operator(m.as_str(), Span::new((0, m.start()), (0, m.end())))
-		);
-	}
-	if let Some(m) = Token::match_literal("42") {
-		eprintln!(
-			"{:?}",
-			Token::literal(m.as_str(), Span::new((0, m.start()), (0, m.end())))
-		);
-	}
+	assert!(Token::match_keyword("let").is_some());
+	assert!(Token::match_ident("foo").is_some());
+	assert!(Token::match_punct(";").is_some());
+	assert!(Token::match_operator("*").is_some());
+	assert!(Token::match_literal("42").is_some());
 }

@@ -14,7 +14,7 @@ path = "tests/tests.rs"
 convert_case = "0.4"
 proc-macro2 = "1.0"
 quote = "1.0"
-syn = { version = "1.0", features = ["extra-traits"] }
+syn = { version = "1.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
 parse-framework = { path = "../parse-framework" }

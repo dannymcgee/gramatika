@@ -1,61 +1,22 @@
-use convert_case::{Case, Casing};
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
-use syn::{
-	parse_macro_input, Data, DataEnum, DeriveInput, Field, Fields, GenericParam, Type,
-};
+use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Field, Fields, Type};
+
+use crate::common;
 
 pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let ast = parse_macro_input!(input as DeriveInput);
 	let ident = &ast.ident;
 	let generics = &ast.generics;
-
-	let lifetime = generics
-		.params
-		.iter()
-		.find_map(|param| match param {
-			GenericParam::Lifetime(lifetime) => Some(lifetime),
-			_ => None,
-		})
-		.unwrap();
+	let lifetime = common::lifetime(generics);
 
 	let (variant_ident, variant_pattern, variant_fields) = match &ast.data {
-		Data::Enum(DataEnum { variants, .. }) => variants.iter().cloned().fold(
-			(vec![], vec![], vec![]),
-			|(mut idents, mut patterns, mut fields), variant| {
-				idents.push(variant.ident);
-				fields.push(variant.fields);
-
-				if let Some(attr) = variant.attrs.iter().find(|attr| {
-					let ident = attr.path.get_ident();
-					ident.is_some() && *ident.unwrap() == "pattern"
-				}) {
-					if let pm2::TokenTree::Group(group) =
-						attr.tokens.to_owned().into_iter().next().unwrap()
-					{
-						if let pm2::TokenTree::Literal(lit) =
-							group.stream().into_iter().next().unwrap()
-						{
-							patterns.push(lit);
-						}
-					}
-				}
-
-				(idents, patterns, fields)
-			},
-		),
+		Data::Enum(DataEnum { variants, .. }) => common::expand_variants(variants),
 		_ => unimplemented!(),
 	};
 
-	let (ctor_ident, matcher_ident): (Vec<_>, Vec<_>) = variant_ident
-		.iter()
-		.map(|ident| {
-			let snake = format!("{}", ident).to_case(Case::Snake);
-			(format_ident!("{}", snake), format_ident!("match_{}", snake))
-		})
-		.unzip();
-
+	let (ctor_ident, matcher_ident) = common::token_funcs(&variant_ident);
 	let ctor_params = variant_fields
 		.iter()
 		.map(|fields| match fields {
