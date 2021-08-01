@@ -2,4 +2,5 @@
 members = [
 	"parse-framework",
 	"parse-framework-macro",
+	"parse-framework-e2e",
 ]

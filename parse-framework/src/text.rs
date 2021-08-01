@@ -18,6 +18,13 @@ pub struct Position {
 	pub character: usize,
 }
 
+#[macro_export]
+macro_rules! span {
+	($start_line:literal:$start_char:literal...$end_line:literal:$end_char:literal) => {
+		::parse_framework::Span::new(($start_line, $start_char), ($end_line, $end_char))
+	};
+}
+
 impl Span {
 	pub fn new(start: (usize, usize), end: (usize, usize)) -> Self {
 		Self {
