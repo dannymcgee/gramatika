@@ -2,15 +2,24 @@ use convert_case::{Case, Casing};
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Field, Fields};
+use syn::{
+	parse_macro_input, Data, DataEnum, DeriveInput, Field, Fields, GenericParam, Type,
+};
 
 #[proc_macro_derive(Token)]
 pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let ast = parse_macro_input!(input as DeriveInput);
-	// eprintln!("{:#?}", ast);
-
 	let ident = &ast.ident;
 	let generics = &ast.generics;
+
+	let lifetime = generics
+		.params
+		.iter()
+		.find_map(|param| match param {
+			GenericParam::Lifetime(lifetime) => Some(lifetime),
+			_ => None,
+		})
+		.unwrap();
 
 	let (variant_ident, variant_fields) = match &ast.data {
 		Data::Enum(DataEnum { variants, .. }) => variants.iter().cloned().fold(
@@ -38,11 +47,10 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				.unnamed
 				.iter()
 				.cloned()
-				.enumerate()
-				.map(|(idx, field)| Field {
+				.map(|field| Field {
 					attrs: field.attrs,
 					vis: field.vis,
-					ident: Some(format_ident!("arg{}", idx)),
+					ident: Some(enum_field_type_to_param_name(&field.ty)),
 					colon_token: field.colon_token,
 					ty: field.ty,
 				})
@@ -64,6 +72,12 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 
 	let result: pm2::TokenStream = quote! {
 		impl#generics #ident#generics {
+			fn as_inner(&#lifetime self) -> (&#lifetime str, Span) {
+				match self {#(
+					Self::#variant_ident(lexeme, span) => (*lexeme, *span)
+				),*}
+			}
+
 			#(
 				pub fn #func_ident(#(#func_params),*) -> Self {
 					Self::#variant_ident(#(#func_param_names),*)
@@ -73,4 +87,20 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	};
 
 	result.into()
+}
+
+fn enum_field_type_to_param_name(ty: &Type) -> pm2::Ident {
+	match ty {
+		Type::Path(path) => {
+			let type_name = &path.path.segments.iter().last().unwrap().ident;
+
+			match &type_name.to_string()[..] {
+				"str" | "String" => format_ident!("lexeme"),
+				"Span" => format_ident!("span"),
+				_ => panic!("Unsupported token field type: `{:?}`", ty),
+			}
+		}
+		Type::Reference(ty) => enum_field_type_to_param_name(&ty.elem),
+		_ => panic!("Unsupported token field type: `{:?}`", ty),
+	}
 }
