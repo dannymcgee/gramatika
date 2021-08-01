@@ -18,4 +18,16 @@ fn main() {
 	let _ = Token::punct(";", span![0:0...0:1]);
 	let _ = Token::operator("*", span![0:0...0:1]);
 	let _ = Token::literal("42", span![0:0...0:2]);
+
+	let keyword = keyword![let];
+	let ident = ident![foo];
+	let punct = punct![;];
+	let operator = operator![*];
+	let literal = literal![42];
+
+	eprintln!("{:?}", keyword);
+	eprintln!("{:?}", ident);
+	eprintln!("{:?}", punct);
+	eprintln!("{:?}", operator);
+	eprintln!("{:?}", literal);
 }

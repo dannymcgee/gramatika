@@ -7,7 +7,9 @@ use crate::common;
 
 pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let ast = parse_macro_input!(input as DeriveInput);
+	let vis = &ast.vis;
 	let ident = &ast.ident;
+	let kind_ident = format_ident!("{}Kind", ident);
 	let generics = &ast.generics;
 	let lifetime = common::lifetime(generics);
 
@@ -49,6 +51,11 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		.collect::<Vec<_>>();
 
 	let result: pm2::TokenStream = quote! {
+		#[derive(Clone, Copy, Debug, PartialEq)]
+		#vis enum #kind_ident {
+			#(#variant_ident),*
+		}
+
 		impl#generics #ident#generics {
 			fn as_inner(&#lifetime self) -> (&#lifetime str, ::parse_framework::Span) {
 				match self {#(
@@ -71,13 +78,48 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			})*
 		}
 
+		#(
+			#[macro_export]
+			macro_rules! #ctor_ident {
+				($lexeme:tt) => {
+					#ident::#ctor_ident(stringify!($lexeme), ::parse_framework::Span::default())
+				}
+			}
+		)*
+
 		impl#generics ::parse_framework::Token for #ident#generics {
+			type Kind = #kind_ident;
+
 			fn lexeme(&self) -> &str {
 				self.as_inner().0
 			}
 
 			fn span(&self) -> ::parse_framework::Span {
 				self.as_inner().1
+			}
+
+			fn kind(&self) -> #kind_ident {
+				match self {
+					#(#ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
+				}
+			}
+		}
+
+		impl#generics ::parse_framework::Token for &#lifetime #ident#generics {
+			type Kind = #kind_ident;
+
+			fn lexeme(&self) -> &str {
+				self.as_inner().0
+			}
+
+			fn span(&self) -> ::parse_framework::Span {
+				self.as_inner().1
+			}
+
+			fn kind(&self) -> #kind_ident {
+				match self {
+					#(#ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
+				}
 			}
 		}
 	};

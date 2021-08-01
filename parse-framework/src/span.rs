@@ -45,8 +45,3 @@ impl fmt::Debug for Position {
 		write!(f, "{}:{}", self.line, self.character)
 	}
 }
-
-pub trait Token {
-	fn span(&self) -> Span;
-	fn lexeme(&self) -> &str;
-}
