@@ -20,25 +20,43 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		})
 		.unwrap();
 
-	let (variant_ident, variant_fields) = match &ast.data {
+	let (variant_ident, variant_pattern, variant_fields) = match &ast.data {
 		Data::Enum(DataEnum { variants, .. }) => variants.iter().cloned().fold(
-			(vec![], vec![]),
-			|(mut idents, mut fields), variant| {
+			(vec![], vec![], vec![]),
+			|(mut idents, mut patterns, mut fields), variant| {
 				idents.push(variant.ident);
 				fields.push(variant.fields);
 
-				(idents, fields)
+				if let Some(attr) = variant.attrs.iter().find(|attr| {
+					let ident = attr.path.get_ident();
+					ident.is_some() && *ident.unwrap() == "pattern"
+				}) {
+					if let pm2::TokenTree::Group(group) =
+						attr.tokens.to_owned().into_iter().next().unwrap()
+					{
+						if let pm2::TokenTree::Literal(lit) =
+							group.stream().into_iter().next().unwrap()
+						{
+							patterns.push(lit);
+						}
+					}
+				}
+
+				(idents, patterns, fields)
 			},
 		),
 		_ => unimplemented!(),
 	};
 
-	let func_ident = variant_ident.iter().map(|ident| {
-		let snake = format!("{}", ident).to_case(Case::Snake);
-		format_ident!("{}", snake)
-	});
+	let (ctor_ident, matcher_ident): (Vec<_>, Vec<_>) = variant_ident
+		.iter()
+		.map(|ident| {
+			let snake = format!("{}", ident).to_case(Case::Snake);
+			(format_ident!("{}", snake), format_ident!("match_{}", snake))
+		})
+		.unzip();
 
-	let func_params = variant_fields
+	let ctor_params = variant_fields
 		.iter()
 		.map(|fields| match fields {
 			Fields::Named(fields) => fields.named.iter().cloned().collect::<Vec<_>>(),
@@ -58,7 +76,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		})
 		.collect::<Vec<_>>();
 
-	let func_param_names = func_params
+	let ctor_args = ctor_params
 		.iter()
 		.map(|fields| {
 			fields
@@ -77,11 +95,19 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				),*}
 			}
 
-			#(
-				pub fn #func_ident(#(#func_params),*) -> Self {
-					Self::#variant_ident(#(#func_param_names),*)
+			#(pub fn #ctor_ident(#(#ctor_params),*) -> Self {
+				Self::#variant_ident(#(#ctor_args),*)
+			})*
+
+			#(pub fn #matcher_ident(
+				input: &#lifetime str
+			) -> ::std::option::Option<::parse_framework::Match<#lifetime>> {
+				lazy_static! {
+					static ref __VARIANT_PATTERN: ::parse_framework::Regex =
+						::parse_framework::Regex::new(#variant_pattern).unwrap();
 				}
-			)*
+				__VARIANT_PATTERN.find(input)
+			})*
 		}
 
 		impl#generics ::parse_framework::Token for #ident#generics {

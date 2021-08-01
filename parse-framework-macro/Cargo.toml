@@ -12,10 +12,10 @@ path = "tests/tests.rs"
 
 [dependencies]
 convert_case = "0.4"
-parse-framework = { path = "../parse-framework" }
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "1.0", features = ["extra-traits"] }
 
 [dev-dependencies]
+parse-framework = { path = "../parse-framework" }
 trybuild = { version = "1.0", features = ["diff"] }

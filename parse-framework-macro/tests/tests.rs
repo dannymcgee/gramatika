@@ -4,4 +4,5 @@ use trybuild::TestCases;
 fn tests() {
 	let t = TestCases::new();
 	t.pass("tests/derive-token.rs");
+	t.pass("tests/pattern.rs");
 }
