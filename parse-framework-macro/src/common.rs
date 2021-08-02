@@ -1,9 +1,9 @@
 use convert_case::{Case, Casing};
-use proc_macro2::{Ident, Literal, TokenTree};
+use proc_macro2::{Ident, Literal, TokenStream, TokenTree};
 use quote::format_ident;
 use syn::{
-	punctuated::Punctuated, token::Comma, Fields, GenericParam, Generics, LifetimeDef,
-	Variant,
+	punctuated::Punctuated, token::Comma, Attribute, Fields, GenericParam, Generics,
+	LifetimeDef, Variant,
 };
 
 pub fn expand_variants(
@@ -54,4 +54,15 @@ pub fn lifetime(generics: &Generics) -> &LifetimeDef {
 			_ => None,
 		})
 		.unwrap()
+}
+
+pub fn attr_args(attr: &Attribute) -> Option<TokenStream> {
+	attr.tokens
+		.to_owned()
+		.into_iter()
+		.next()
+		.and_then(|tt| match tt {
+			TokenTree::Group(group) => Some(group.stream()),
+			_ => None,
+		})
 }

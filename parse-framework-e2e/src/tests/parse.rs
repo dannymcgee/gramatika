@@ -3,35 +3,23 @@ use parse_framework::{Parse, TokenStream};
 use super::*;
 use crate::*;
 
-#[derive(Debug)]
+#[derive(Debug, Parse)]
+#[parse_token(super::Token<'a>)]
 struct VarDecl<'a> {
+	#[token(keyword![let])]
 	pub storage: Token<'a>,
+
+	#[token_kind(Ident)]
 	pub ident: Token<'a>,
+
+	#[token(operator![=])]
 	pub eq: Token<'a>,
+
+	#[token_kind(Literal)]
 	pub expr: Token<'a>,
+
+	#[token(punct![;])]
 	pub semicolon: Token<'a>,
-}
-
-impl<'a> Parse for VarDecl<'a> {
-	type Token = super::Token<'a>;
-
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String> {
-		use TokenKind::*;
-
-		let storage = input.take(keyword![let])?;
-		let ident = input.take_kind(Ident)?;
-		let eq = input.take(operator![=])?;
-		let expr = input.take_kind(Literal)?;
-		let semicolon = input.take(punct![;])?;
-
-		Ok(Self {
-			storage,
-			ident,
-			eq,
-			expr,
-			semicolon,
-		})
-	}
 }
 
 #[test]

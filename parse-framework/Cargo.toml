@@ -11,4 +11,5 @@ regex = "1.5"
 parse-framework-macro = { path = "../parse-framework-macro", optional = true }
 
 [features]
+default = ["macros"]
 macros = ["parse-framework-macro"]

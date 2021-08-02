@@ -17,5 +17,5 @@ quote = "1.0"
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 
 [dev-dependencies]
-parse-framework = { path = "../parse-framework" }
+parse-framework = { path = "../parse-framework", features = [] }
 trybuild = { version = "1.0", features = ["diff"] }
