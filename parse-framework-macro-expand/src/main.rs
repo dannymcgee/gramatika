@@ -1,3 +1,6 @@
+//! This binary only exists to debug the output of proc macros by running `cargo expand`
+//! against it.
+
 #![allow(unused_imports, dead_code)]
 
 #[macro_use]

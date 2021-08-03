@@ -20,7 +20,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 	let (ctor_ident, matcher_ident) = common::token_funcs(&variant_ident);
 
 	let result = quote! {
-		use ::parse_framework::Lexer as __INTERNAL_LEXER_TRAIT_USE;
+		use ::parse_framework::Lexer as _;
 
 		#vis struct #lexer_ident<#lifetime> {
 			input: &#lifetime str,

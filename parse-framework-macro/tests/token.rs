@@ -23,7 +23,7 @@ fn main() {
 	let ident = ident![foo];
 	let punct = punct![;];
 	let operator = operator![*];
-	let literal = literal![42];
+	let literal = literal!["42"];
 
 	eprintln!("{:?}", keyword);
 	eprintln!("{:?}", ident);

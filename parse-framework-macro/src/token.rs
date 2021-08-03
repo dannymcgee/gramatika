@@ -81,9 +81,12 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		#(
 			#[macro_export]
 			macro_rules! #ctor_ident {
+				($lexeme:literal) => {
+					#ident::#ctor_ident($lexeme, ::parse_framework::Span::default())
+				};
 				($lexeme:tt) => {
 					#ident::#ctor_ident(stringify!($lexeme), ::parse_framework::Span::default())
-				}
+				};
 			}
 		)*
 

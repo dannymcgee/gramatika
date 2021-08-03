@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter::FromIterator};
+use std::{collections::VecDeque, fmt, iter::FromIterator};
 
 use crate::Token;
 
@@ -6,7 +6,7 @@ pub trait Parse {
 	type Token: crate::Token;
 
 	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
-	where Self: std::marker::Sized;
+	where Self: Sized;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -27,7 +27,7 @@ where T: Token
 }
 
 impl<T> TokenStream<T>
-where T: Token
+where T: Token + fmt::Debug
 {
 	pub fn new() -> Self {
 		Self::default()
@@ -53,13 +53,15 @@ where T: Token
 		self.inner.pop_front();
 	}
 
-	pub fn check(&self, kind: T::Kind) -> bool {
+	pub fn check_kind(&self, kind: T::Kind) -> bool {
 		self.peek().map(|tok| kind == tok.kind()).unwrap_or(false)
 	}
 
-	pub fn check_exact(&self, compare: T) -> bool {
+	pub fn check(&self, compare: T) -> bool {
 		self.peek()
-			.map(|peek| peek.kind() == compare.kind() && peek.lexeme() == compare.lexeme())
+			.map(|peek| {
+				peek.kind() == compare.kind() && peek.lexeme() == compare.lexeme()
+			})
 			.unwrap_or(false)
 	}
 
@@ -69,14 +71,22 @@ where T: Token
 				if token.kind() == compare.kind() && token.lexeme() == compare.lexeme() {
 					Ok(token)
 				} else {
+					let detail = if token.kind() != compare.kind() {
+						format!("Kind {:?} != {:?}", token.kind(), compare.kind())
+					} else {
+						format!("Lexeme `{}` != `{}`", token.lexeme(), compare.lexeme())
+					};
+
 					Err(format!(
-						"Expected {:?} but found {:?}",
+						"Expected {:?} `{}` but found {:?}\n{}",
 						compare.kind(),
-						token.kind()
+						compare.lexeme(),
+						token,
+						detail,
 					))
 				}
 			})
-			.unwrap_or_else(|| Err("End of file".into()))
+			.unwrap_or_else(|| Err("Unexpected end of input".into()))
 	}
 
 	pub fn take_kind(&mut self, kind: T::Kind) -> Result<T, String> {
@@ -85,7 +95,7 @@ where T: Token
 				if token.kind() == kind {
 					Ok(token)
 				} else {
-					Err(format!("Expected {:?} but found {:?}", kind, token.kind()))
+					Err(format!("Expected {:?} but found {:?}", kind, token))
 				}
 			})
 			.unwrap_or_else(|| Err("End of file".into()))

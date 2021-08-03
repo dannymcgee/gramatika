@@ -1,5 +1,5 @@
-use super::{Lexer, Token};
-use parse_framework::{span, Lexer as TraitLexer, Token as TraitToken, TokenStream};
+use crate::{Lexer, Token};
+use parse_framework::{span, Lexer as _, Token as _, TokenStream};
 
 #[test]
 fn from_iter() {
