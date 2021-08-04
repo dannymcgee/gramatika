@@ -5,7 +5,7 @@ extern crate parse_framework_macro;
 #[macro_use]
 extern crate parse_framework;
 
-use parse_framework::{Lexer as LexerTrait, Span, TokenStream};
+use parse_framework::{Lexer as LexerTrait, ParseStream, Span};
 
 /// Expected output:
 ///
@@ -113,9 +113,7 @@ fn main() {
 		Token::operator("+", span![0:12...0:13]),
 		Token::literal("2", span![0:14...0:15]),
 		Token::punct(";", span![0:15...0:16]),
-	]
-	.into_iter()
-	.collect::<TokenStream<_>>();
+	];
 
 	assert_eq!(tokens, expected);
 }

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, TokenStream};
+use parse_framework::{Parse, ParseStream as _};
 
 use crate::*;
 
@@ -58,9 +58,9 @@ pub struct WhileStmt<'a> {
 }
 
 impl<'a> Parse for Program<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
 		let mut stmts = vec![];
 		while !input.is_empty() {
@@ -72,9 +72,9 @@ impl<'a> Parse for Program<'a> {
 }
 
 impl<'a> Parse for Stmt<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
 		use Token::*;
 
@@ -89,20 +89,20 @@ impl<'a> Parse for Stmt<'a> {
 				Keyword("return", _) => Ok(Stmt::Return(input.parse::<ReturnStmt>()?)),
 				Keyword("while", _) => Ok(Stmt::While(input.parse::<WhileStmt>()?)),
 				Brace("{", _) => {
-					input.take(brace!["{"])?;
+					input.consume(brace!["{"])?;
 
 					let mut stmts = vec![];
 					while !input.is_empty() && !input.check(brace!["}"]) {
 						stmts.push(input.parse::<Stmt>()?);
 					}
 
-					input.take(brace!["}"])?;
+					input.consume(brace!["}"])?;
 
 					Ok(Stmt::Block(stmts))
 				}
 				_ => {
 					let expr = input.parse::<Expr>()?;
-					input.take(punct![;])?;
+					input.consume(punct![;])?;
 
 					Ok(Stmt::Expr(expr))
 				}
@@ -113,16 +113,16 @@ impl<'a> Parse for Stmt<'a> {
 }
 
 impl<'a> Parse for ForStmt<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let keyword = input.take(keyword![for])?;
+		let keyword = input.consume(keyword![for])?;
 
-		input.take(brace!["("])?;
+		input.consume(brace!["("])?;
 
 		let initializer = if input.check(punct![;]) {
-			input.take(punct![;])?;
+			input.consume(punct![;])?;
 			None
 		} else {
 			Some(Box::new(input.parse::<Stmt>()?))
@@ -133,7 +133,7 @@ impl<'a> Parse for ForStmt<'a> {
 		} else {
 			Some(input.parse::<Expr>()?)
 		};
-		input.take(punct![;])?;
+		input.consume(punct![;])?;
 
 		let increment = if input.check(brace![")"]) {
 			None
@@ -141,15 +141,15 @@ impl<'a> Parse for ForStmt<'a> {
 			Some(input.parse::<Expr>()?)
 		};
 
-		input.take(brace![")"])?;
-		input.take(brace!["{"])?;
+		input.consume(brace![")"])?;
+		input.consume(brace!["{"])?;
 
 		let mut body = vec![];
 		while !input.is_empty() && !input.check(brace!["}"]) {
 			body.push(input.parse::<Stmt>()?);
 		}
 
-		input.take(brace!["}"])?;
+		input.consume(brace!["}"])?;
 
 		Ok(ForStmt {
 			keyword,
@@ -162,19 +162,19 @@ impl<'a> Parse for ForStmt<'a> {
 }
 
 impl<'a> Parse for IfStmt<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let keyword = input.take(keyword![if])?;
+		let keyword = input.consume(keyword![if])?;
 
-		input.take(brace!["("])?;
+		input.consume(brace!["("])?;
 		let condition = input.parse::<Expr>()?;
-		input.take(brace![")"])?;
+		input.consume(brace![")"])?;
 
 		let then_branch = Box::new(input.parse::<Stmt>()?);
 		let else_branch = if input.check(keyword![else]) {
-			input.take(keyword![else])?;
+			input.consume(keyword![else])?;
 
 			Some(Box::new(input.parse::<Stmt>()?))
 		} else {
@@ -191,47 +191,47 @@ impl<'a> Parse for IfStmt<'a> {
 }
 
 impl<'a> Parse for PrintStmt<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let keyword = input.take(keyword![print])?;
+		let keyword = input.consume(keyword![print])?;
 		let value = input.parse::<Expr>()?;
 
-		input.take(punct![;])?;
+		input.consume(punct![;])?;
 
 		Ok(PrintStmt { keyword, value })
 	}
 }
 
 impl<'a> Parse for ReturnStmt<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let keyword = input.take(keyword![return])?;
+		let keyword = input.consume(keyword![return])?;
 		let value = if input.check(punct![;]) {
 			None
 		} else {
 			Some(input.parse::<Expr>()?)
 		};
 
-		input.take(punct![;])?;
+		input.consume(punct![;])?;
 
 		Ok(ReturnStmt { keyword, value })
 	}
 }
 
 impl<'a> Parse for WhileStmt<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let keyword = input.take(keyword![while])?;
+		let keyword = input.consume(keyword![while])?;
 
-		input.take(brace!["("])?;
+		input.consume(brace!["("])?;
 		let condition = input.parse::<Expr>()?;
-		input.take(brace![")"])?;
+		input.consume(brace![")"])?;
 
 		let body = Box::new(input.parse::<Stmt>()?);
 

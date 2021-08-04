@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, Token as _, TokenStream};
+use parse_framework::{Parse, ParseStream as _, Token as _};
 
 use crate::*;
 
@@ -93,51 +93,51 @@ trait RecursiveDescent<'a> {
 }
 
 impl<'a> Parse for Expr<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
 		input.assignment()
 	}
 }
 
 impl<'a> Parse for FunExpr<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		input.take(brace!["("])?;
+		input.consume(brace!["("])?;
 
 		let mut params = vec![];
 		while !input.is_empty() && !input.check(brace![")"]) {
 			if !params.is_empty() {
-				input.take(punct![,])?;
+				input.consume(punct![,])?;
 			}
-			params.push(input.take_kind(TokenKind::Ident)?);
+			params.push(input.consume_kind(TokenKind::Ident)?);
 		}
 
-		input.take(brace![")"])?;
-		input.take(brace!["{"])?;
+		input.consume(brace![")"])?;
+		input.consume(brace!["{"])?;
 
 		let mut body = vec![];
 		while !input.is_empty() && !input.check(brace!["}"]) {
 			body.push(input.parse::<Stmt>()?);
 		}
 
-		input.take(brace!["}"])?;
+		input.consume(brace!["}"])?;
 
 		Ok(FunExpr { params, body })
 	}
 }
 
-impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
+impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 	type Token = crate::Token<'a>;
 
 	fn assignment(&mut self) -> Result<Expr<'a>, String> {
 		let expr = self.or()?;
 
 		if self.check(operator![=]) {
-			self.take(operator![=])?;
+			self.consume(operator![=])?;
 
 			let value = self.assignment()?;
 
@@ -162,7 +162,7 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 		let mut expr = self.and()?;
 
 		while self.check(keyword![or]) {
-			let op = self.take(keyword![or])?;
+			let op = self.consume(keyword![or])?;
 			let rhs = self.and()?;
 
 			expr = Expr::Logical(BinaryExpr {
@@ -179,7 +179,7 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 		let mut expr = self.equality()?;
 
 		while self.check(keyword![and]) {
-			let op = self.take(keyword![and])?;
+			let op = self.consume(keyword![and])?;
 			let rhs = self.equality()?;
 
 			expr = Expr::Logical(BinaryExpr {
@@ -213,7 +213,7 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 
 	fn unary(&mut self) -> Result<Expr<'a>, String> {
 		if self.check(operator![!]) || self.check(operator!["-"]) {
-			let op = self.take_kind(TokenKind::Operator)?;
+			let op = self.consume_kind(TokenKind::Operator)?;
 			let rhs = self.unary()?;
 
 			Ok(Expr::Unary(UnaryExpr {
@@ -232,13 +232,13 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 		expr = loop {
 			match self.peek() {
 				Some(Brace("(", _)) => {
-					self.take(brace!["("])?;
+					self.consume(brace!["("])?;
 
 					expr = self.finish_call(expr)?;
 				}
 				Some(Punct(".", _)) => {
-					self.take(punct![.])?;
-					let name = self.take_kind(TokenKind::Ident)?;
+					self.consume(punct![.])?;
+					let name = self.consume_kind(TokenKind::Ident)?;
 
 					expr = Expr::Get(GetExpr {
 						obj: Box::new(expr),
@@ -256,12 +256,12 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 		let mut args = vec![];
 		while !self.is_empty() && !self.check(brace![")"]) {
 			if !args.is_empty() {
-				self.take(punct![,])?;
+				self.consume(punct![,])?;
 			}
 			args.push(self.parse::<Expr>()?);
 		}
 
-		self.take(brace![")"])?;
+		self.consume(brace![")"])?;
 
 		Ok(Expr::FunCall(FunCallExpr {
 			callee: Box::new(callee),
@@ -279,8 +279,8 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 				| token @ StrLit(_, _),
 			) => Ok(Expr::Literal(token)),
 			Some(keyword @ Keyword("super", _)) => {
-				self.take(punct![.])?;
-				let method = self.take_kind(TokenKind::Ident)?;
+				self.consume(punct![.])?;
+				let method = self.consume_kind(TokenKind::Ident)?;
 
 				Ok(Expr::Super(SuperExpr { keyword, method }))
 			}
@@ -289,7 +289,7 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 			Some(Keyword("fun", _)) => Ok(Expr::Fun(self.parse::<FunExpr>()?)),
 			Some(Brace("(", _)) => {
 				let expr = self.parse::<Expr>()?;
-				self.take(brace![")"])?;
+				self.consume(brace![")"])?;
 
 				Ok(Expr::Grouping(Box::new(expr)))
 			}
@@ -306,7 +306,7 @@ impl<'a> RecursiveDescent<'a> for TokenStream<crate::Token<'a>> {
 		let mut expr = operand_method(self)?;
 
 		while operators.iter().any(|op| self.check(*op)) {
-			let op = self.take_kind(TokenKind::Operator)?;
+			let op = self.consume_kind(TokenKind::Operator)?;
 			let rhs = operand_method(self)?;
 
 			expr = Expr::Binary(BinaryExpr {

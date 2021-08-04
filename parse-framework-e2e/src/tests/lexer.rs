@@ -1,5 +1,5 @@
 use crate::{Lexer, Token};
-use parse_framework::{Lexer as _, TokenStream};
+use parse_framework::{Lexer as _, ParseStream};
 
 #[test]
 fn it_works() {
@@ -17,9 +17,7 @@ fn it_works() {
 		Operator("+", span![0:12...0:13]),
 		NumLit("2", span![0:14...0:15]),
 		Punct(";", span![0:15...0:16]),
-	]
-	.into_iter()
-	.collect();
+	];
 
 	assert_eq!(tokens, expected);
 }
@@ -51,9 +49,7 @@ var bar = foo + foo;
 		Operator("+", span![2:14...2:15]),
 		Ident("foo", span![2:16...2:19]),
 		Punct(";", span![2:19...2:20]),
-	]
-	.into_iter()
-	.collect();
+	];
 
 	assert_eq!(tokens, expected);
 }
@@ -64,10 +60,5 @@ fn ident_with_digit() {
 	let mut lexer = Lexer::new(input);
 	let tokens = lexer.scan();
 
-	assert_eq!(
-		tokens,
-		vec![Token::Ident("foo2", span![0:0...0:4])]
-			.into_iter()
-			.collect()
-	);
+	assert_eq!(tokens, vec![Token::Ident("foo2", span![0:0...0:4])]);
 }

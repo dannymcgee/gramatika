@@ -64,7 +64,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 			type Token = #token_type;
 
 			fn parse(
-				input: &mut ::parse_framework::TokenStream<Self::Token>
+				input: &mut ::parse_framework::ParseStream<Self::Token>
 			) -> std::result::Result<Self, ::std::string::String> {
 				Ok(Self {
 					#(

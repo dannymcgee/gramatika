@@ -1,4 +1,4 @@
-use parse_framework::{Lexer as _, Parse, TokenStream};
+use parse_framework::{Lexer as _, Parse, ParseStream as _};
 
 use crate::*;
 
@@ -155,10 +155,9 @@ for (var i = 0; i < 10; i = i + 1) {
 }
 
 fn parse(input: &str) {
-	let mut lexer = Lexer::new(input);
-	let mut tokens = lexer.scan();
+	let mut parser = ParseStream::from(input);
 
-	match tokens.parse::<Program>() {
+	match parser.parse::<Program>() {
 		Ok(program) => {
 			eprintln!("{:#?}", program);
 		}

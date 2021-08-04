@@ -44,13 +44,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
 			type Input = &#lifetime str;
 			type Output = #enum_ident#generics;
 
-			fn scan(&mut self) -> ::parse_framework::TokenStream<Self::Output> {
+			fn scan(&mut self) -> ::std::vec::Vec<Self::Output> {
 				let mut output = vec![];
 				while let Some(token) = self.scan_token() {
 					output.push(token);
 				}
 
-				output.into_iter().collect()
+				output
 			}
 
 			fn scan_token(&mut self) -> Option<Self::Output> {

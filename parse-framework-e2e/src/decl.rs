@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, TokenStream};
+use parse_framework::{Parse, ParseStream as _};
 
 use crate::*;
 
@@ -31,9 +31,9 @@ pub struct VariableDecl<'a> {
 }
 
 impl<'a> Parse for Decl<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
 		use Token::*;
 
@@ -51,26 +51,26 @@ impl<'a> Parse for Decl<'a> {
 }
 
 impl<'a> Parse for ClassDecl<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let name = input.take_kind(TokenKind::Ident)?;
+		let name = input.consume_kind(TokenKind::Ident)?;
 		let superclass = if input.check(operator![<]) {
-			input.take(operator![<])?;
-			Some(input.take_kind(TokenKind::Ident)?)
+			input.consume(operator![<])?;
+			Some(input.consume_kind(TokenKind::Ident)?)
 		} else {
 			None
 		};
 
-		input.take(brace!["{"])?;
+		input.consume(brace!["{"])?;
 
 		let mut methods = vec![];
 		while !input.is_empty() && !input.check(brace!["}"]) {
 			methods.push(input.parse::<FunDecl>()?);
 		}
 
-		input.take(brace!["}"])?;
+		input.consume(brace!["}"])?;
 
 		Ok(ClassDecl {
 			name,
@@ -81,11 +81,11 @@ impl<'a> Parse for ClassDecl<'a> {
 }
 
 impl<'a> Parse for FunDecl<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let name = input.take_kind(TokenKind::Ident)?;
+		let name = input.consume_kind(TokenKind::Ident)?;
 		let func = input.parse::<FunExpr>()?;
 
 		Ok(FunDecl { name, func })
@@ -93,20 +93,20 @@ impl<'a> Parse for FunDecl<'a> {
 }
 
 impl<'a> Parse for VariableDecl<'a> {
-	type Token = crate::Token<'a>;
+	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut TokenStream<Self::Token>) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<Self, String>
 	where Self: Sized {
-		let name = input.take_kind(TokenKind::Ident)?;
+		let name = input.consume_kind(TokenKind::Ident)?;
 		let initializer = if input.check(operator![=]) {
-			input.take(operator![=])?;
+			input.consume(operator![=])?;
 
 			Some(input.parse::<Expr>()?)
 		} else {
 			None
 		};
 
-		input.take(punct![;])?;
+		input.consume(punct![;])?;
 
 		Ok(VariableDecl { name, initializer })
 	}

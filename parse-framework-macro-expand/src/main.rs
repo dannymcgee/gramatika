@@ -26,23 +26,23 @@ enum Token<'a> {
 	Literal(&'a str, Span),
 }
 
-#[derive(Debug, Parse)]
-#[parse_token(crate::Token<'a>)]
-struct VarDecl<'a> {
-	#[token(keyword![let])]
-	pub storage: Token<'a>,
+// #[derive(Debug, Parse)]
+// #[parse_token(crate::Token<'a>)]
+// struct VarDecl<'a> {
+// 	#[token(keyword![let])]
+// 	pub storage: Token<'a>,
 
-	#[token_kind(Ident)]
-	pub ident: Token<'a>,
+// 	#[token_kind(Ident)]
+// 	pub ident: Token<'a>,
 
-	#[token(operator![=])]
-	pub eq: Token<'a>,
+// 	#[token(operator![=])]
+// 	pub eq: Token<'a>,
 
-	#[token_kind(Literal)]
-	pub expr: Token<'a>,
+// 	#[token_kind(Literal)]
+// 	pub expr: Token<'a>,
 
-	#[token(punct![;])]
-	pub semicolon: Token<'a>,
-}
+// 	#[token(punct![;])]
+// 	pub semicolon: Token<'a>,
+// }
 
 fn main() {}
