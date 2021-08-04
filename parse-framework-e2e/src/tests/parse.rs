@@ -1,4 +1,4 @@
-use parse_framework::{Lexer as _, Parse, ParseStream as _};
+use parse_framework::{Lexer as _, Parse, ParseStream, ParseStreamer};
 
 use crate::*;
 

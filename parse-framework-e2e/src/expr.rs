@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, ParseStream as _, Token as _};
+use parse_framework::{Parse, ParseStreamer, Token as _};
 
 use crate::*;
 
@@ -131,7 +131,7 @@ impl<'a> Parse for FunExpr<'a> {
 }
 
 impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
-	type Token = crate::Token<'a>;
+	type Token = Token<'a>;
 
 	fn assignment(&mut self) -> Result<Expr<'a>, String> {
 		let expr = self.or()?;

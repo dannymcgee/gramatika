@@ -5,7 +5,7 @@ extern crate parse_framework_macro;
 #[macro_use]
 extern crate parse_framework;
 
-use parse_framework::{Lexer as LexerTrait, ParseStream, Span};
+use parse_framework::{Lexer as LexerTrait, ParseStreamer, Span};
 
 /// Expected output:
 ///

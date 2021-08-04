@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, ParseStream as _};
+use parse_framework::{Parse, ParseStreamer};
 
 use crate::*;
 
@@ -27,7 +27,7 @@ pub struct ForStmt<'a> {
 	pub initializer: Option<Box<Stmt<'a>>>,
 	pub condition: Option<Expr<'a>>,
 	pub increment: Option<Expr<'a>>,
-	pub body: Vec<Stmt<'a>>,
+	pub body: Box<Stmt<'a>>,
 }
 
 #[derive(Debug)]
@@ -142,14 +142,8 @@ impl<'a> Parse for ForStmt<'a> {
 		};
 
 		input.consume(brace![")"])?;
-		input.consume(brace!["{"])?;
 
-		let mut body = vec![];
-		while !input.is_empty() && !input.check(brace!["}"]) {
-			body.push(input.parse::<Stmt>()?);
-		}
-
-		input.consume(brace!["}"])?;
+		let body = Box::new(input.parse::<Stmt>()?);
 
 		Ok(ForStmt {
 			keyword,

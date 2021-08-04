@@ -30,19 +30,17 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 		type __TOKEN_CTOR<#lifetime> = fn(&#lifetime str, ::parse_framework::Span) -> #enum_ident#generics;
 
-		impl<#lifetime> #lexer_ident<#lifetime> {
-			#vis fn new(input: &#lifetime str) -> Self {
+		impl<#lifetime> ::parse_framework::Lexer for #lexer_ident<#lifetime> {
+			type Input = &#lifetime str;
+			type Output = #enum_ident#generics;
+
+			fn new(input: Self::Input) -> Self {
 				Self {
 					input,
 					current: ::parse_framework::Position::default(),
 					lookahead: ::parse_framework::Position::default(),
 				}
 			}
-		}
-
-		impl<#lifetime> ::parse_framework::Lexer for #lexer_ident<#lifetime> {
-			type Input = &#lifetime str;
-			type Output = #enum_ident#generics;
 
 			fn scan(&mut self) -> ::std::vec::Vec<Self::Output> {
 				let mut output = vec![];

@@ -1,5 +1,5 @@
 use crate::{Lexer, Token};
-use parse_framework::{Lexer as _, ParseStream};
+use parse_framework::{Lexer as _, ParseStreamer};
 
 #[test]
 fn it_works() {

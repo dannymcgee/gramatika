@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, ParseStream as _};
+use parse_framework::{Parse, ParseStreamer};
 
 use crate::*;
 
