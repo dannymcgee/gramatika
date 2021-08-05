@@ -1,7 +1,9 @@
+pub mod error;
 pub mod lexer;
 pub mod parse;
 pub mod span;
 
+pub use error::*;
 pub use lexer::*;
 pub use parse::*;
 pub use span::*;

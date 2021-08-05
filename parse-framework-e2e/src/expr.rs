@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, ParseStreamer, Token as _};
+use parse_framework::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::*;
 
@@ -74,37 +74,37 @@ pub struct UnaryExpr<'a> {
 trait RecursiveDescent<'a> {
 	type Token: parse_framework::Token;
 
-	fn assignment(&mut self) -> Result<Expr<'a>, String>;
-	fn or(&mut self) -> Result<Expr<'a>, String>;
-	fn and(&mut self) -> Result<Expr<'a>, String>;
-	fn equality(&mut self) -> Result<Expr<'a>, String>;
-	fn comparison(&mut self) -> Result<Expr<'a>, String>;
-	fn term(&mut self) -> Result<Expr<'a>, String>;
-	fn factor(&mut self) -> Result<Expr<'a>, String>;
-	fn unary(&mut self) -> Result<Expr<'a>, String>;
-	fn call(&mut self) -> Result<Expr<'a>, String>;
-	fn finish_call(&mut self, callee: Expr<'a>) -> Result<Expr<'a>, String>;
-	fn primary(&mut self) -> Result<Expr<'a>, String>;
+	fn assignment(&mut self) -> Result<'a, Expr<'a>>;
+	fn or(&mut self) -> Result<'a, Expr<'a>>;
+	fn and(&mut self) -> Result<'a, Expr<'a>>;
+	fn equality(&mut self) -> Result<'a, Expr<'a>>;
+	fn comparison(&mut self) -> Result<'a, Expr<'a>>;
+	fn term(&mut self) -> Result<'a, Expr<'a>>;
+	fn factor(&mut self) -> Result<'a, Expr<'a>>;
+	fn unary(&mut self) -> Result<'a, Expr<'a>>;
+	fn call(&mut self) -> Result<'a, Expr<'a>>;
+	fn finish_call(&mut self, callee: Expr<'a>) -> Result<'a, Expr<'a>>;
+	fn primary(&mut self) -> Result<'a, Expr<'a>>;
 	fn binary(
 		&mut self,
 		operators: &[Self::Token],
-		operand_method: fn(&mut Self) -> Result<Expr<'a>, String>,
-	) -> Result<Expr<'a>, String>;
+		operand_method: fn(&mut Self) -> Result<'a, Expr<'a>>,
+	) -> Result<'a, Expr<'a>>;
 }
 
-impl<'a> Parse for Expr<'a> {
+impl<'a> Parse<'a> for Expr<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		input.assignment()
 	}
 }
 
-impl<'a> Parse for FunExpr<'a> {
+impl<'a> Parse<'a> for FunExpr<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		input.consume(brace!["("])?;
 
@@ -133,7 +133,7 @@ impl<'a> Parse for FunExpr<'a> {
 impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 	type Token = Token<'a>;
 
-	fn assignment(&mut self) -> Result<Expr<'a>, String> {
+	fn assignment(&mut self) -> Result<'a, Expr<'a>> {
 		let expr = self.or()?;
 
 		if self.check(operator![=]) {
@@ -151,14 +151,18 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 					name: expr.name,
 					value: Box::new(value),
 				})),
-				other => Err(format!("Invalid assignment target: {:?}", other)),
+				_other => Err(SpannedError {
+					message: "Invalid assignment target".into(),
+					source: self.source(),
+					span: None, // FIXME
+				}),
 			}
 		} else {
 			Ok(expr)
 		}
 	}
 
-	fn or(&mut self) -> Result<Expr<'a>, String> {
+	fn or(&mut self) -> Result<'a, Expr<'a>> {
 		let mut expr = self.and()?;
 
 		while self.check(keyword![or]) {
@@ -175,7 +179,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		Ok(expr)
 	}
 
-	fn and(&mut self) -> Result<Expr<'a>, String> {
+	fn and(&mut self) -> Result<'a, Expr<'a>> {
 		let mut expr = self.equality()?;
 
 		while self.check(keyword![and]) {
@@ -192,26 +196,26 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		Ok(expr)
 	}
 
-	fn equality(&mut self) -> Result<Expr<'a>, String> {
+	fn equality(&mut self) -> Result<'a, Expr<'a>> {
 		self.binary(&[operator![==], operator![!=]], Self::comparison)
 	}
 
-	fn comparison(&mut self) -> Result<Expr<'a>, String> {
+	fn comparison(&mut self) -> Result<'a, Expr<'a>> {
 		self.binary(
 			&[operator![>], operator![>=], operator![<], operator![<=]],
 			Self::term,
 		)
 	}
 
-	fn term(&mut self) -> Result<Expr<'a>, String> {
+	fn term(&mut self) -> Result<'a, Expr<'a>> {
 		self.binary(&[operator!["-"], operator![+]], Self::factor)
 	}
 
-	fn factor(&mut self) -> Result<Expr<'a>, String> {
+	fn factor(&mut self) -> Result<'a, Expr<'a>> {
 		self.binary(&[operator![/], operator![*]], Self::unary)
 	}
 
-	fn unary(&mut self) -> Result<Expr<'a>, String> {
+	fn unary(&mut self) -> Result<'a, Expr<'a>> {
 		if self.check(operator![!]) || self.check(operator!["-"]) {
 			let op = self.consume_kind(TokenKind::Operator)?;
 			let rhs = self.unary()?;
@@ -225,7 +229,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		}
 	}
 
-	fn call(&mut self) -> Result<Expr<'a>, String> {
+	fn call(&mut self) -> Result<'a, Expr<'a>> {
 		use Token::*;
 
 		let mut expr = self.primary()?;
@@ -252,7 +256,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		Ok(expr)
 	}
 
-	fn finish_call(&mut self, callee: Expr<'a>) -> Result<Expr<'a>, String> {
+	fn finish_call(&mut self, callee: Expr<'a>) -> Result<'a, Expr<'a>> {
 		let mut args = vec![];
 		while !self.is_empty() && !self.check(brace![")"]) {
 			if !args.is_empty() {
@@ -269,7 +273,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		}))
 	}
 
-	fn primary(&mut self) -> Result<Expr<'a>, String> {
+	fn primary(&mut self) -> Result<'a, Expr<'a>> {
 		use Token::*;
 
 		match self.next() {
@@ -293,16 +297,24 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 
 				Ok(Expr::Grouping(Box::new(expr)))
 			}
-			Some(other) => Err(format!("Expected expression, found {:?}", other)),
-			None => Err("Unexpected end of input".into()),
+			Some(other) => Err(SpannedError {
+				message: "Expected expression".into(),
+				source: self.source(),
+				span: Some(other.span()),
+			}),
+			None => Err(SpannedError {
+				message: "Unexpected end of input".into(),
+				source: self.source(),
+				span: None,
+			}),
 		}
 	}
 
 	fn binary(
 		&mut self,
 		operators: &[Self::Token],
-		operand_method: fn(&mut Self) -> Result<Expr<'a>, String>,
-	) -> Result<Expr<'a>, String> {
+		operand_method: fn(&mut Self) -> Result<'a, Expr<'a>>,
+	) -> Result<'a, Expr<'a>> {
 		let mut expr = operand_method(self)?;
 
 		while operators.iter().any(|op| self.check(*op)) {

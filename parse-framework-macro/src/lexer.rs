@@ -24,6 +24,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 		#vis struct #lexer_ident<#lifetime> {
 			input: &#lifetime str,
+			remaining: &#lifetime str,
 			current: ::parse_framework::Position,
 			lookahead: ::parse_framework::Position,
 		}
@@ -37,9 +38,14 @@ pub fn derive(input: TokenStream) -> TokenStream {
 			fn new(input: Self::Input) -> Self {
 				Self {
 					input,
+					remaining: input,
 					current: ::parse_framework::Position::default(),
 					lookahead: ::parse_framework::Position::default(),
 				}
+			}
+
+			fn input(&self) -> Self::Input {
+				self.input
 			}
 
 			fn scan(&mut self) -> ::std::vec::Vec<Self::Output> {
@@ -53,7 +59,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 			fn scan_token(&mut self) -> Option<Self::Output> {
 				None#(
-					.or_else(|| #enum_ident::#matcher_ident(self.input)
+					.or_else(|| #enum_ident::#matcher_ident(self.remaining)
 						.map(|m| (m, #enum_ident::#ctor_ident as __TOKEN_CTOR)))
 				)*
 				.map(|(m, ctor)| {
@@ -66,16 +72,16 @@ pub fn derive(input: TokenStream) -> TokenStream {
 					};
 					let token = ctor(lexeme, span);
 
-					self.input = &self.input[m.end()..];
+					self.remaining = &self.remaining[m.end()..];
 					self.current = self.lookahead;
 
 					token
 				})
-				.or_else(|| self.input.chars().peekable().peek().and_then(|c| match c {
+				.or_else(|| self.remaining.chars().peekable().peek().and_then(|c| match c {
 					' ' | '\t' | '\r' => {
 						self.lookahead.character += 1;
 						self.current.character += 1;
-						self.input = &self.input[1..];
+						self.remaining = &self.remaining[1..];
 
 						self.scan_token()
 					},
@@ -83,7 +89,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 						self.lookahead.line += 1;
 						self.lookahead.character = 0;
 						self.current = self.lookahead;
-						self.input = &self.input[1..];
+						self.remaining = &self.remaining[1..];
 
 						self.scan_token()
 					},

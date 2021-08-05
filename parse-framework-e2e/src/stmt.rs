@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, ParseStreamer};
+use parse_framework::{Parse, ParseStreamer, Result, SpannedError};
 
 use crate::*;
 
@@ -57,10 +57,10 @@ pub struct WhileStmt<'a> {
 	pub body: Box<Stmt<'a>>,
 }
 
-impl<'a> Parse for Program<'a> {
+impl<'a> Parse<'a> for Program<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let mut stmts = vec![];
 		while !input.is_empty() {
@@ -71,10 +71,10 @@ impl<'a> Parse for Program<'a> {
 	}
 }
 
-impl<'a> Parse for Stmt<'a> {
+impl<'a> Parse<'a> for Stmt<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		use Token::*;
 
@@ -107,15 +107,19 @@ impl<'a> Parse for Stmt<'a> {
 					Ok(Stmt::Expr(expr))
 				}
 			},
-			None => Err("Unexpected end of input".into()),
+			None => Err(SpannedError {
+				message: "Unexpected end of input".into(),
+				source: input.source(),
+				span: None,
+			}),
 		}
 	}
 }
 
-impl<'a> Parse for ForStmt<'a> {
+impl<'a> Parse<'a> for ForStmt<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let keyword = input.consume(keyword![for])?;
 
@@ -155,10 +159,10 @@ impl<'a> Parse for ForStmt<'a> {
 	}
 }
 
-impl<'a> Parse for IfStmt<'a> {
+impl<'a> Parse<'a> for IfStmt<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let keyword = input.consume(keyword![if])?;
 
@@ -184,10 +188,10 @@ impl<'a> Parse for IfStmt<'a> {
 	}
 }
 
-impl<'a> Parse for PrintStmt<'a> {
+impl<'a> Parse<'a> for PrintStmt<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let keyword = input.consume(keyword![print])?;
 		let value = input.parse::<Expr>()?;
@@ -198,10 +202,10 @@ impl<'a> Parse for PrintStmt<'a> {
 	}
 }
 
-impl<'a> Parse for ReturnStmt<'a> {
+impl<'a> Parse<'a> for ReturnStmt<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let keyword = input.consume(keyword![return])?;
 		let value = if input.check(punct![;]) {
@@ -216,10 +220,10 @@ impl<'a> Parse for ReturnStmt<'a> {
 	}
 }
 
-impl<'a> Parse for WhileStmt<'a> {
+impl<'a> Parse<'a> for WhileStmt<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let keyword = input.consume(keyword![while])?;
 

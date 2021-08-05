@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use parse_framework::{Parse, ParseStreamer};
+use parse_framework::{Parse, ParseStreamer, Result, SpannedError};
 
 use crate::*;
 
@@ -30,10 +30,10 @@ pub struct VariableDecl<'a> {
 	pub initializer: Option<Expr<'a>>,
 }
 
-impl<'a> Parse for Decl<'a> {
+impl<'a> Parse<'a> for Decl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		use Token::*;
 
@@ -41,19 +41,24 @@ impl<'a> Parse for Decl<'a> {
 			Some(Keyword("class", _)) => Ok(Decl::Class(input.parse::<ClassDecl>()?)),
 			Some(Keyword("fun", _)) => Ok(Decl::Fun(input.parse::<FunDecl>()?)),
 			Some(Keyword("var", _)) => Ok(Decl::Variable(input.parse::<VariableDecl>()?)),
-			Some(other) => Err(format!(
-				"Expected `class`, `fun`, or `var`, but found `{}`",
-				other
-			)),
-			None => Err("Unexpected end of input".into()),
+			Some(other) => Err(SpannedError {
+				message: "Expected `class`, `fun`, or `var`".into(),
+				source: input.source(),
+				span: Some(other.span()),
+			}),
+			None => Err(SpannedError {
+				message: "Unexpected end of input".into(),
+				source: input.source(),
+				span: None,
+			}),
 		}
 	}
 }
 
-impl<'a> Parse for ClassDecl<'a> {
+impl<'a> Parse<'a> for ClassDecl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let superclass = if input.check(operator![<]) {
@@ -80,10 +85,10 @@ impl<'a> Parse for ClassDecl<'a> {
 	}
 }
 
-impl<'a> Parse for FunDecl<'a> {
+impl<'a> Parse<'a> for FunDecl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let func = input.parse::<FunExpr>()?;
@@ -92,10 +97,10 @@ impl<'a> Parse for FunDecl<'a> {
 	}
 }
 
-impl<'a> Parse for VariableDecl<'a> {
+impl<'a> Parse<'a> for VariableDecl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let initializer = if input.check(operator![=]) {

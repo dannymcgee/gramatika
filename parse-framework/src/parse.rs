@@ -1,27 +1,27 @@
 use std::fmt;
 
-use crate::{Lexer, Token};
+use crate::{Lexer, Result, SpannedError, Token};
 
-pub trait Parse {
-	type Stream: ParseStreamer;
+pub trait Parse<'a> {
+	type Stream: ParseStreamer<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<Self, String>
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
 	where Self: Sized;
 }
 
-pub trait ParseStreamer {
+pub trait ParseStreamer<'a> {
 	type Token: crate::Token;
 
-	fn parse<P: Parse<Stream = Self>>(&mut self) -> Result<P, String>;
+	fn parse<P: Parse<'a, Stream = Self>>(&mut self) -> Result<'a, P>;
 	fn is_empty(&mut self) -> bool;
 	fn peek(&mut self) -> Option<&Self::Token>;
 	fn check_kind(&mut self, kind: <Self::Token as crate::Token>::Kind) -> bool;
 	fn check(&mut self, compare: Self::Token) -> bool;
-	fn consume(&mut self, compare: Self::Token) -> Result<Self::Token, String>;
+	fn consume(&mut self, compare: Self::Token) -> Result<'a, Self::Token>;
 	fn consume_kind(
 		&mut self,
 		kind: <Self::Token as crate::Token>::Kind,
-	) -> Result<Self::Token, String>;
+	) -> Result<'a, Self::Token>;
 }
 
 pub struct ParseStream<'a, T, L>
@@ -29,7 +29,8 @@ where
 	T: Token,
 	L: Lexer<Input = &'a str, Output = T> + Sized,
 {
-	inner: L,
+	input: &'a str,
+	lexer: L,
 	peek: Option<T>,
 }
 
@@ -40,20 +41,27 @@ where
 {
 	pub fn new(lexer: L) -> Self {
 		Self {
-			inner: lexer,
+			input: lexer.input(),
+			lexer,
 			peek: None,
 		}
 	}
+
+	pub fn source(&self) -> &'a str {
+		self.input
+	}
 }
 
-impl<'a, T, L> ParseStreamer for ParseStream<'a, T, L>
+// --- ParseStreamer impl ----------------------------------------------------------------
+
+impl<'a, T, L> ParseStreamer<'a> for ParseStream<'a, T, L>
 where
 	T: Token + fmt::Debug,
 	L: Lexer<Input = &'a str, Output = T> + Sized,
 {
 	type Token = T;
 
-	fn parse<P: Parse<Stream = Self>>(&mut self) -> Result<P, String> {
+	fn parse<P: Parse<'a, Stream = Self>>(&mut self) -> Result<'a, P> {
 		P::parse(self)
 	}
 
@@ -61,14 +69,14 @@ where
 		if self.peek.is_some() {
 			false
 		} else {
-			self.peek = self.inner.scan_token();
+			self.peek = self.lexer.scan_token();
 			self.peek.is_none()
 		}
 	}
 
 	fn peek(&mut self) -> Option<&Self::Token> {
 		if self.peek.is_none() {
-			self.peek = self.inner.scan_token();
+			self.peek = self.lexer.scan_token();
 		}
 		self.peek.as_ref()
 	}
@@ -87,45 +95,66 @@ where
 			.unwrap_or(false)
 	}
 
-	fn consume(&mut self, compare: Self::Token) -> Result<Self::Token, String> {
+	fn consume(&mut self, compare: Self::Token) -> Result<'a, Self::Token> {
 		self.next()
 			.map(|token| {
 				if token.kind() == compare.kind() && token.lexeme() == compare.lexeme() {
 					Ok(token)
 				} else {
-					let detail = if token.kind() != compare.kind() {
-						format!("Kind {:?} != {:?}", token.kind(), compare.kind())
-					} else {
-						format!("Lexeme `{}` != `{}`", token.lexeme(), compare.lexeme())
-					};
-
-					Err(format!(
-						"Expected {:?} `{}` but found {:?}\n{}",
+					let message = format!(
+						"Expected {:?} `{}` but found {:?}",
 						compare.kind(),
 						compare.lexeme(),
-						token,
-						detail,
-					))
+						token.kind(),
+					);
+
+					Err(SpannedError {
+						message,
+						source: self.input,
+						span: Some(token.span()),
+					})
 				}
 			})
-			.unwrap_or_else(|| Err("Unexpected end of input".into()))
+			.unwrap_or_else(|| {
+				Err(SpannedError {
+					message: "Unexpected end of input".into(),
+					source: self.input,
+					span: None,
+				})
+			})
 	}
 
 	fn consume_kind(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-	) -> Result<Self::Token, String> {
+	) -> Result<'a, Self::Token> {
 		self.next()
 			.map(|token| {
 				if token.kind() == kind {
 					Ok(token)
 				} else {
-					Err(format!("Expected {:?} but found {:?}", kind, token))
+					Err(SpannedError {
+						message: format!(
+							"Expected {:?} but found {:?}",
+							kind,
+							token.kind()
+						),
+						source: self.input,
+						span: Some(token.span()),
+					})
 				}
 			})
-			.unwrap_or_else(|| Err("Unexpected end of input".into()))
+			.unwrap_or_else(|| {
+				Err(SpannedError {
+					message: "Unexpected end of input".into(),
+					source: self.input,
+					span: None,
+				})
+			})
 	}
 }
+
+// --- Iterator --------------------------------------------------------------------------
 
 impl<'a, T, L> Iterator for ParseStream<'a, T, L>
 where
@@ -138,10 +167,12 @@ where
 		if self.peek.is_some() {
 			self.peek.take()
 		} else {
-			self.inner.scan_token()
+			self.lexer.scan_token()
 		}
 	}
 }
+
+// --- Conversions -----------------------------------------------------------------------
 
 impl<'a, T, L> From<L> for ParseStream<'a, T, L>
 where
@@ -161,6 +192,10 @@ where
 	fn from(input: &'a str) -> Self {
 		let lexer = L::new(input);
 
-		Self::new(lexer)
+		Self {
+			input,
+			lexer,
+			peek: None,
+		}
 	}
 }
