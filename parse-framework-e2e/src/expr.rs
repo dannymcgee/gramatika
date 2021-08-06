@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use parse_framework::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::*;
