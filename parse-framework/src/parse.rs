@@ -99,15 +99,8 @@ where
 				if token.kind() == compare.kind() && token.lexeme() == compare.lexeme() {
 					Ok(token)
 				} else {
-					let message = format!(
-						"Expected {:?} `{}` but found {:?}",
-						compare.kind(),
-						compare.lexeme(),
-						token.kind(),
-					);
-
 					Err(SpannedError {
-						message,
+						message: format!("Expected `{}`", compare.lexeme()),
 						source: self.input,
 						span: Some(token.span()),
 					})
@@ -132,11 +125,7 @@ where
 					Ok(token)
 				} else {
 					Err(SpannedError {
-						message: format!(
-							"Expected {:?} but found {:?}",
-							kind,
-							token.kind()
-						),
+						message: format!("Expected {:?}", kind),
 						source: self.input,
 						span: Some(token.span()),
 					})

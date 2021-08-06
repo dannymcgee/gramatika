@@ -17,7 +17,6 @@ impl<'a> fmt::Display for SpannedError<'a> {
 		} else {
 			writeln!(f)?;
 			writeln!(f, "ERROR: {}", self.message)?;
-			writeln!(f)?;
 
 			if let Some(span) = self.span {
 				let line_num = span.start.line + 1;
@@ -38,16 +37,19 @@ impl<'a> fmt::Display for SpannedError<'a> {
 					.ok_or(fmt::Error)?;
 
 				let tab_count = line.chars().filter(|c| *c == '\t').count();
-				let offset =
-					line_digits + 3 + span.start.character - tab_count + (tab_count * 4);
+				let offset = span.start.character - tab_count + (tab_count * 4);
 				let line = line.replace('\t', "    ");
 
+				writeln!(f, "{:>offset$}", "|", offset = line_digits + 2)?;
 				writeln!(f, "{} | {}", line_num, line)?;
+				write!(f, "{:>offset$} ", "|", offset = line_digits + 2)?;
 				write!(f, "{:>offset$}", "^", offset = offset + 1)?;
 
 				if len > 1 {
 					write!(f, "{:-<width$}", "-", width = len - 1)?;
 				}
+
+				writeln!(f)?;
 			}
 
 			Ok(())
