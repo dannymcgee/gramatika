@@ -3,7 +3,7 @@ use parse_framework::{span, Span};
 #[macro_use]
 extern crate parse_framework_macro;
 
-#[derive(Debug, Token)]
+#[derive(Debug, Token, PartialEq)]
 enum Token<'a> {
 	Keyword(&'a str, Span),
 	Ident(&'a str, Span),
@@ -13,21 +13,52 @@ enum Token<'a> {
 }
 
 fn main() {
-	let _ = Token::keyword("let", span![0:0...0:3]);
-	let _ = Token::ident("foo", span![0:0...0:3]);
-	let _ = Token::punct(";", span![0:0...0:1]);
-	let _ = Token::operator("*", span![0:0...0:1]);
-	let _ = Token::literal("42", span![0:0...0:2]);
+	// Constructor functions
+	assert_eq!(
+		Token::keyword("let", span![0:0...0:3]),
+		Token::Keyword("let", span![0:0...0:3]),
+	);
+	assert_eq!(
+		Token::ident("foo", span![0:0...0:3]),
+		Token::Ident("foo", span![0:0...0:3]),
+	);
+	assert_eq!(
+		Token::punct(";", span![0:0...0:1]),
+		Token::Punct(";", span![0:0...0:1]),
+	);
+	assert_eq!(
+		Token::operator("*", span![0:0...0:1]),
+		Token::Operator("*", span![0:0...0:1]),
+	);
+	assert_eq!(
+		Token::literal("42", span![0:0...0:2]),
+		Token::Literal("42", span![0:0...0:2]),
+	);
 
-	let keyword = keyword![let];
-	let ident = ident![foo];
-	let punct = punct![;];
-	let operator = operator![*];
-	let literal = literal!["42"];
-
-	eprintln!("{:?}", keyword);
-	eprintln!("{:?}", ident);
-	eprintln!("{:?}", punct);
-	eprintln!("{:?}", operator);
-	eprintln!("{:?}", literal);
+	// Macros
+	#[rustfmt::skip]
+	assert_eq!(
+		keyword![let],
+		Token::Keyword("let", span![0:0...0:0]),
+	);
+	#[rustfmt::skip]
+	assert_eq!(
+		ident![foo],
+		Token::Ident("foo", span![0:0...0:0]),
+	);
+	#[rustfmt::skip]
+	assert_eq!(
+		punct![;],
+		Token::Punct(";", span![0:0...0:0]),
+	);
+	#[rustfmt::skip]
+	assert_eq!(
+		operator![*],
+		Token::Operator("*", span![0:0...0:0]),
+	);
+	#[rustfmt::skip]
+	assert_eq!(
+		literal!["42"],
+		Token::Literal("42", span![0:0...0:0]),
+	);
 }

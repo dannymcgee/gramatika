@@ -12,6 +12,7 @@ use parse_framework::{Lexer as LexerTrait, ParseStreamer, Span};
 /// ```
 /// struct Lexer<'a> {
 ///     input: &'a str,
+///     remaining: &'a str,
 ///     current: ::parse_framework::Position,
 ///     lookahead: ::parse_framework::Position,
 /// }
@@ -20,6 +21,7 @@ use parse_framework::{Lexer as LexerTrait, ParseStreamer, Span};
 ///     fn new(input: &'a str) -> Self {
 ///         Self {
 ///             input,
+///             remaining: input,
 ///             current: ::parse_framework::Position::default(),
 ///             lookahead: ::parse_framework::Position::default(),
 ///         }
@@ -57,16 +59,16 @@ use parse_framework::{Lexer as LexerTrait, ParseStreamer, Span};
 ///                 };
 ///                 let token = ctor(lexeme, span);
 ///
-///                 self.input = &self.input[m.end()..];
+///                 self.remaining = &self.remaining[m.end()..];
 ///                 self.current = self.lookahead;
 ///
 ///                 token
 ///             })
-///             .or_else(|| self.input.chars().peekable().peek().and_then(|c| match c {
+///             .or_else(|| self.remaining.chars().peekable().peek().and_then(|c| match c {
 ///                 ' ' | '\t' | '\r' => {
 ///                     self.lookahead.character += 1;
 ///                     self.current.character += 1;
-///                     self.input = &self.input[1..];
+///                     self.remaining = &self.remaining[1..];
 ///
 ///                     self.scan_token()
 ///                 },
@@ -74,7 +76,7 @@ use parse_framework::{Lexer as LexerTrait, ParseStreamer, Span};
 ///                     self.lookahead.line += 1;
 ///                     self.lookahead.character = 0;
 ///                     self.current = self.lookahead;
-///                     self.input = &self.input[1..];
+///                     self.remaining = &self.remaining[1..];
 ///
 ///                     self.scan_token()
 ///                 },
