@@ -1,8 +1,8 @@
 use std::fmt;
 
-use parse_framework::{Span, Token as _};
+use parse_framework::{DebugLisp, Span, Token as _};
 
-#[derive(Clone, Copy, Debug, PartialEq, Token, Lexer)]
+#[derive(Clone, Copy, DebugLispToken, PartialEq, Token, Lexer)]
 pub enum Token<'a> {
 	#[pattern(r"^(and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while)\b")]
 	Keyword(&'a str, Span),
@@ -29,5 +29,11 @@ pub enum Token<'a> {
 impl<'a> fmt::Display for Token<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{}", self.lexeme())
+	}
+}
+
+impl<'a> fmt::Debug for Token<'a> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		DebugLisp::fmt(self, f, 0)
 	}
 }

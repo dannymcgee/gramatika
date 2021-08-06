@@ -4,12 +4,12 @@ use parse_framework::{Parse, ParseStreamer, Result, SpannedError};
 
 use crate::*;
 
-#[derive(Debug)]
+#[derive(DebugLispEntry)]
 pub struct Program<'a> {
 	pub stmts: Vec<Stmt<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub enum Stmt<'a> {
 	Block(Vec<Stmt<'a>>),
 	Decl(Decl<'a>),
@@ -21,7 +21,7 @@ pub enum Stmt<'a> {
 	While(WhileStmt<'a>),
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct ForStmt<'a> {
 	pub keyword: Token<'a>,
 	pub initializer: Option<Box<Stmt<'a>>>,
@@ -30,7 +30,7 @@ pub struct ForStmt<'a> {
 	pub body: Box<Stmt<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct IfStmt<'a> {
 	pub keyword: Token<'a>,
 	pub condition: Expr<'a>,
@@ -38,19 +38,19 @@ pub struct IfStmt<'a> {
 	pub else_branch: Option<Box<Stmt<'a>>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct PrintStmt<'a> {
 	pub keyword: Token<'a>,
 	pub value: Expr<'a>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct ReturnStmt<'a> {
 	pub keyword: Token<'a>,
 	pub value: Option<Expr<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct WhileStmt<'a> {
 	pub keyword: Token<'a>,
 	pub condition: Expr<'a>,

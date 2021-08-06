@@ -4,27 +4,27 @@ use parse_framework::{Parse, ParseStreamer, Result, SpannedError};
 
 use crate::*;
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub enum Decl<'a> {
 	Class(ClassDecl<'a>),
 	Fun(FunDecl<'a>),
 	Variable(VariableDecl<'a>),
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct ClassDecl<'a> {
 	pub name: Token<'a>,
-	pub methods: Vec<FunDecl<'a>>,
 	pub superclass: Option<Token<'a>>,
+	pub methods: Vec<FunDecl<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct FunDecl<'a> {
 	pub name: Token<'a>,
 	pub func: FunExpr<'a>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct VariableDecl<'a> {
 	pub name: Token<'a>,
 	pub initializer: Option<Expr<'a>>,

@@ -1,5 +1,3 @@
-use std::fmt;
-
 use crate::{Lexer, Result, SpannedError, Token};
 
 pub trait Parse<'a> {
@@ -56,7 +54,7 @@ where
 
 impl<'a, T, L> ParseStreamer<'a> for ParseStream<'a, T, L>
 where
-	T: Token + fmt::Debug,
+	T: Token,
 	L: Lexer<Input = &'a str, Output = T> + Sized,
 {
 	type Token = T;

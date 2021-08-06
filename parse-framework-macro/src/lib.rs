@@ -1,6 +1,7 @@
 use proc_macro::TokenStream;
 
 mod common;
+mod debug_lisp;
 mod lexer;
 mod parse;
 mod token;
@@ -18,4 +19,19 @@ pub fn derive_lexer(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(Parse, attributes(parse_token, token, token_kind))]
 pub fn derive_parse(input: TokenStream) -> TokenStream {
 	parse::derive(input)
+}
+
+#[proc_macro_derive(DebugLisp)]
+pub fn derive_debug_lisp(input: TokenStream) -> TokenStream {
+	debug_lisp::derive(input)
+}
+
+#[proc_macro_derive(DebugLispToken)]
+pub fn derive_debug_lisp_token(input: TokenStream) -> TokenStream {
+	debug_lisp::derive_token(input)
+}
+
+#[proc_macro_derive(DebugLispEntry)]
+pub fn derive_debug_lisp_entry(input: TokenStream) -> TokenStream {
+	debug_lisp::derive_entry(input)
 }

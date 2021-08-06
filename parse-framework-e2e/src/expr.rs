@@ -4,7 +4,7 @@ use parse_framework::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::*;
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub enum Expr<'a> {
 	Assignment(AssignmentExpr<'a>),
 	Binary(BinaryExpr<'a>),
@@ -21,51 +21,51 @@ pub enum Expr<'a> {
 	Variable(Token<'a>),
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct AssignmentExpr<'a> {
 	pub name: Token<'a>,
 	pub value: Box<Expr<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct BinaryExpr<'a> {
 	pub lhs: Box<Expr<'a>>,
 	pub op: Token<'a>,
 	pub rhs: Box<Expr<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct FunExpr<'a> {
 	pub params: Vec<Token<'a>>,
 	pub body: Vec<Stmt<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct FunCallExpr<'a> {
 	pub callee: Box<Expr<'a>>,
 	pub args: Vec<Expr<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct GetExpr<'a> {
 	pub obj: Box<Expr<'a>>,
 	pub name: Token<'a>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct SetExpr<'a> {
 	pub obj: Box<Expr<'a>>,
 	pub name: Token<'a>,
 	pub value: Box<Expr<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct SuperExpr<'a> {
 	pub keyword: Token<'a>,
 	pub method: Token<'a>,
 }
 
-#[derive(Debug)]
+#[derive(DebugLisp)]
 pub struct UnaryExpr<'a> {
 	pub op: Token<'a>,
 	pub rhs: Box<Expr<'a>>,
