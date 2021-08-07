@@ -44,7 +44,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 				}
 			}
 
-			fn input(&self) -> Self::Input {
+			fn source(&self) -> Self::Input {
 				self.input
 			}
 

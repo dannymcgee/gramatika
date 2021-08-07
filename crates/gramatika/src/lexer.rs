@@ -7,7 +7,7 @@ pub trait Lexer {
 	type Output: Token;
 
 	fn new(input: Self::Input) -> Self;
-	fn input(&self) -> Self::Input;
+	fn source(&self) -> Self::Input;
 	fn scan(&mut self) -> Vec<Self::Output>;
 	fn scan_token(&mut self) -> Option<Self::Output>;
 }

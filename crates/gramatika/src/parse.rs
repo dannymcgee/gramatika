@@ -4,7 +4,8 @@ pub trait Parse<'a> {
 	type Stream: ParseStreamer<'a>;
 
 	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
-	where Self: Sized;
+	where
+		Self: Sized;
 }
 
 pub trait ParseStreamer<'a> {
@@ -39,7 +40,7 @@ where
 {
 	pub fn new(lexer: L) -> Self {
 		Self {
-			input: lexer.input(),
+			input: lexer.source(),
 			lexer,
 			peek: None,
 		}
