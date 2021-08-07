@@ -39,7 +39,12 @@ pub fn token_funcs(variant_idents: &[Ident]) -> (Vec<Ident>, Vec<Ident>) {
 	variant_idents
 		.iter()
 		.map(|ident| {
-			let snake = format!("{}", ident).to_case(Case::Snake);
+			// FIXME: Need a more robust solution for keyword collisions
+			let snake = if *ident == "Type" {
+				"ty".into()
+			} else {
+				format!("{}", ident).to_case(Case::Snake)
+			};
 			(format_ident!("{}", snake), format_ident!("match_{}", snake))
 		})
 		.unzip()
