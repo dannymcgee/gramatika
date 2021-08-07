@@ -1,0 +1,21 @@
+[package]
+name = "gramatika-macro"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[[test]]
+name = "tests"
+path = "tests/tests.rs"
+
+[dependencies]
+convert_case = "0.4"
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0", features = ["full", "extra-traits"] }
+
+[dev-dependencies]
+gramatika = { path = "../gramatika", features = [] }
+trybuild = { version = "1.0", features = ["diff"] }
