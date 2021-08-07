@@ -2,7 +2,7 @@ use parse_framework::{Parse, ParseStreamer, Result, SpannedError};
 
 use crate::*;
 
-#[derive(DebugLispEntry)]
+#[derive(DebugLisp)]
 pub struct Program<'a> {
 	pub stmts: Vec<Stmt<'a>>,
 }

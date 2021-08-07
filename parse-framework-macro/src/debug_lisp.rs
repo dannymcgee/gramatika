@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{
 	parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, Generics, Ident,
 };
@@ -38,10 +38,16 @@ fn derive_debug_struct(
 
 	let stream = quote! {
 		impl#generics ::parse_framework::DebugLisp for #ident#generics {
-			fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>, indent: usize) -> ::std::fmt::Result {
+			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>, indent: usize) -> ::core::fmt::Result {
 				::parse_framework::DebugLispStruct::new(f, indent, stringify!(#ident))
 					#(.field(stringify!(#field_name), &self.#field_name))*
 					.finish()
+			}
+		}
+
+		impl#generics ::core::fmt::Debug for #ident#generics {
+			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+				::parse_framework::DebugLisp::fmt(self, f, 0)
 			}
 		}
 	};
@@ -100,48 +106,6 @@ pub fn derive_token(input: TokenStream) -> TokenStream {
 					<Self as ::parse_framework::Token>::kind(self),
 					<Self as ::parse_framework::Token>::span(self)
 				)
-			}
-		}
-	};
-
-	stream.into()
-}
-
-pub fn derive_entry(input: TokenStream) -> TokenStream {
-	let ast = parse_macro_input!(input as DeriveInput);
-	let ident = &ast.ident;
-	let generics = &ast.generics;
-
-	let field: Vec<_> = match &ast.data {
-		Data::Struct(data) => match &data.fields {
-			Fields::Named(ref fields) => fields
-				.named
-				.iter()
-				.map(|field| field.ident.as_ref().unwrap().clone())
-				.collect(),
-			Fields::Unnamed(ref fields) => fields
-				.unnamed
-				.iter()
-				.enumerate()
-				.map(|(idx, _)| format_ident!("{}", idx))
-				.collect(),
-			Fields::Unit => {
-				panic!("`#[derive(DebugLispEntry)]` is not supported for unit structs")
-			}
-		},
-		Data::Enum(_) => {
-			panic!("`#[derive(DebugLispEntry)]` is not supported for enums")
-		}
-		Data::Union(_) => {
-			panic!("`#[derive(DebugLispEntry)]` is not supported for Union types")
-		}
-	};
-
-	let stream = quote! {
-		impl#generics ::core::fmt::Debug for #ident#generics {
-			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-				write!(f, "{}: ", stringify!(#ident))?;
-				#(::parse_framework::DebugLisp::fmt(&self.#field, f, 0));*
 			}
 		}
 	};

@@ -112,7 +112,7 @@ pub struct PrimaryExpr<'a> {
 	pub token: Token<'a>,
 }
 
-#[derive(DebugLispEntry)]
+#[derive(DebugLisp)]
 pub struct Program<'a> {
 	pub exprs: Vec<Expr<'a>>,
 }
@@ -135,20 +135,22 @@ fn main() {
 
 	let output = format!("{:#?}", ast);
 	let expected = r#"
-Program: [
-   (Expr::Binary (BinaryExpr
-      lhs: (Expr::Primary (PrimaryExpr
-         token: `3` (Literal (0:0...0:1)),
-      )),
-      op: `+` (Operator (0:2...0:3)),
-      rhs: (Expr::Unary (UnaryExpr
-         op: `-` (Operator (0:4...0:5)),
-         rhs: (Expr::Primary (PrimaryExpr
-            token: `2` (Literal (0:5...0:6)),
+(Program
+   exprs: [
+      (Expr::Binary (BinaryExpr
+         lhs: (Expr::Primary (PrimaryExpr
+            token: `3` (Literal (0:0...0:1)),
+         )),
+         op: `+` (Operator (0:2...0:3)),
+         rhs: (Expr::Unary (UnaryExpr
+            op: `-` (Operator (0:4...0:5)),
+            rhs: (Expr::Primary (PrimaryExpr
+               token: `2` (Literal (0:5...0:6)),
+            )),
          )),
       )),
-   )),
-]
+   ],
+)
 "#;
 
 	assert_eq!(output, &expected[1..expected.len() - 1]);

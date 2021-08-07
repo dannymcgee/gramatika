@@ -30,8 +30,3 @@ pub fn derive_debug_lisp(input: TokenStream) -> TokenStream {
 pub fn derive_debug_lisp_token(input: TokenStream) -> TokenStream {
 	debug_lisp::derive_token(input)
 }
-
-#[proc_macro_derive(DebugLispEntry)]
-pub fn derive_debug_lisp_entry(input: TokenStream) -> TokenStream {
-	debug_lisp::derive_entry(input)
-}
