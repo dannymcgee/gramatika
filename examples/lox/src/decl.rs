@@ -31,8 +31,7 @@ pub struct VariableDecl<'a> {
 impl<'a> Parse<'a> for Decl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
-	where Self: Sized {
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
 		use Token::*;
 
 		match input.next() {
@@ -56,8 +55,7 @@ impl<'a> Parse<'a> for Decl<'a> {
 impl<'a> Parse<'a> for ClassDecl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
-	where Self: Sized {
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let superclass = if input.check(operator![<]) {
 			input.consume(operator![<])?;
@@ -86,8 +84,7 @@ impl<'a> Parse<'a> for ClassDecl<'a> {
 impl<'a> Parse<'a> for FunDecl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
-	where Self: Sized {
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let func = input.parse::<FunExpr>()?;
 
@@ -98,8 +95,7 @@ impl<'a> Parse<'a> for FunDecl<'a> {
 impl<'a> Parse<'a> for VariableDecl<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
-	where Self: Sized {
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let initializer = if input.check(operator![=]) {
 			input.consume(operator![=])?;

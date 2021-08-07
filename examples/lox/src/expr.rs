@@ -93,8 +93,7 @@ trait RecursiveDescent<'a> {
 impl<'a> Parse<'a> for Expr<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
-	where Self: Sized {
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
 		input.assignment()
 	}
 }
@@ -102,8 +101,7 @@ impl<'a> Parse<'a> for Expr<'a> {
 impl<'a> Parse<'a> for FunExpr<'a> {
 	type Stream = ParseStream<'a>;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self>
-	where Self: Sized {
+	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
 		input.consume(brace!["("])?;
 
 		let mut params = vec![];

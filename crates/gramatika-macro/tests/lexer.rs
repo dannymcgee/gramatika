@@ -5,7 +5,7 @@ extern crate gramatika_macro;
 #[macro_use]
 extern crate gramatika;
 
-use gramatika::{Lexer as LexerTrait, ParseStreamer, Span};
+use gramatika::{Lexer as _, ParseStreamer, Span};
 
 /// Expected output:
 ///
