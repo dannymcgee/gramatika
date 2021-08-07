@@ -1,8 +1,5 @@
 [workspace]
-license = "MIT OR Apache-2.0"
 members = [
-	"gramatika",
-	"gramatika-macro",
-	"gramatika-macro-expand",
-	"gramatika-e2e",
+	"crates/*",
+	"examples/*"
 ]
