@@ -80,17 +80,13 @@ where
 	}
 
 	fn check_kind(&mut self, kind: <Self::Token as Token>::Kind) -> bool {
-		self.peek()
-			.map(|token| kind == token.kind())
-			.unwrap_or(false)
+		self.peek().map_or(false, |token| kind == token.kind())
 	}
 
 	fn check(&mut self, compare: Self::Token) -> bool {
-		self.peek()
-			.map(|token| {
-				token.kind() == compare.kind() && token.lexeme() == compare.lexeme()
-			})
-			.unwrap_or(false)
+		self.peek().map_or(false, |token| {
+			token.kind() == compare.kind() && token.lexeme() == compare.lexeme()
+		})
 	}
 
 	fn consume(&mut self, compare: Self::Token) -> Result<'a, Self::Token> {
