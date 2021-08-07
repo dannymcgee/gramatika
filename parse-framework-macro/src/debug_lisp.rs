@@ -68,11 +68,11 @@ fn derive_debug_enum(ident: &Ident, generics: &Generics, data: &DataEnum) -> Tok
 	let stream = quote! {
 		impl#generics ::parse_framework::DebugLisp for #ident#generics {
 			fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>, indent: usize) -> ::std::fmt::Result {
-				write!(f, "{}::", stringify!(#ident))?;
+				write!(f, "({}::", stringify!(#ident))?;
 
 				match self {#(
 					#ident::#variant_name(inner) => {
-						write!(f, "{}(", stringify!(#variant_name))?;
+						write!(f, "{} ", stringify!(#variant_name))?;
 						<#variant_inner_type as ::parse_framework::DebugLisp>::fmt(&inner, f, indent)
 					}
 				)*}?;
@@ -95,7 +95,7 @@ pub fn derive_token(input: TokenStream) -> TokenStream {
 			fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>, _: usize) -> ::std::fmt::Result {
 				write!(
 					f,
-					"`{}` ({:?} [{:?}])",
+					"`{}` ({:?} ({:?}))",
 					<Self as ::parse_framework::Token>::lexeme(self),
 					<Self as ::parse_framework::Token>::kind(self),
 					<Self as ::parse_framework::Token>::span(self)
