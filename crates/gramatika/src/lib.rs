@@ -10,8 +10,9 @@ pub use lexer::*;
 pub use parse::*;
 pub use span::*;
 
-pub use lazy_static::lazy_static;
-pub use regex::*;
-
 #[cfg(feature = "macros")]
 pub use gramatika_macro::*;
+#[cfg(feature = "macros")]
+pub use lazy_static::lazy_static;
+#[cfg(feature = "macros")]
+pub use regex::*;

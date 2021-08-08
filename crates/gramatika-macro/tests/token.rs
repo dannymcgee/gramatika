@@ -1,6 +1,8 @@
 use gramatika::{span, Span};
 
 #[macro_use]
+extern crate gramatika;
+#[macro_use]
 extern crate gramatika_macro;
 
 #[derive(Debug, Token, PartialEq)]

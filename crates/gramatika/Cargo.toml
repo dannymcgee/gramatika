@@ -8,10 +8,18 @@ readme = "../../README.md"
 repository = "http://github.com/dannymcgee/gramatika"
 
 [dependencies]
-lazy_static = "1.4"
-regex = "1.5"
-gramatika-macro = { path = "../gramatika-macro", optional = true }
+lazy_static = { version = "1.4", optional = true }
+regex = { version = "1.5", optional = true }
+
+[dependencies.gramatika-macro]
+version = "0.1.0"
+path = "../gramatika-macro"
+optional = true
 
 [features]
 default = ["macros"]
-macros = ["gramatika-macro"]
+macros = [
+	"gramatika-macro",
+	"lazy_static",
+	"regex",
+]

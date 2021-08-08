@@ -70,7 +70,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			#(pub fn #matcher_ident(
 				input: &#lifetime str
 			) -> ::std::option::Option<::gramatika::Match<#lifetime>> {
-				::gramatika::lazy_static! {
+				lazy_static! {
 					static ref __VARIANT_PATTERN: ::gramatika::Regex =
 						::gramatika::Regex::new(#variant_pattern).unwrap();
 				}
