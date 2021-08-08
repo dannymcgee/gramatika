@@ -18,7 +18,7 @@ gramatika = "0.1"
 
 Define an enum for your tokens and derive the `Token` and `Lexer` traits:
 
-```rs
+```rust
 #[macro_use]
 extern crate gramatika;
 
@@ -26,25 +26,25 @@ use gramatika::Span;
 
 #[derive(Clone, Copy, PartialEq, Token, Lexer)]
 enum Token<'a> {
-	#[pattern(r"^(if|else|switch|case|break|for|while|var)\b")]
+	#[pattern = r"(if|else|switch|case|break|for|while|var)\b"]
 	Keyword(&'a str, Span),
 
-	#[pattern(r"^(true|false|null)\b")]
+	#[pattern = r"(true|false|null)\b"]
 	ConstLiteral(&'a str, Span),
 
-	#[pattern(r"^(0[xb])?[0-9A-Fa-f][0-9A-Fa-f.]+")]
+	#[pattern = "(0[xb])?[0-9A-Fa-f][0-9A-Fa-f.]*"]
 	NumLiteral(&'a str, Span),
 
-	#[pattern(r#"^"[^"]+""#)]
+	#[pattern = r#""[^"]+""#]
 	StrLiteral(&'a str, Span),
 
-	#[pattern(r"^[a-zA-Z_][a-zA-Z_0-9]*")]
+	#[pattern = "[a-zA-Z_][a-zA-Z_0-9]*"]
 	Ident(&'a str, Span),
 
-	#[pattern(r"^[(){}[\],.;]")]
+	#[pattern = r"^[(){}[\],.;]"]
 	Punct(&'a str, Span),
 
-	#[pattern(r"^[-+*/]")]
+	#[pattern = "[-+*/=!<>]"]
 	Operator(&'a str, Span),
 }
 ```
@@ -53,13 +53,13 @@ enum Token<'a> {
 
 Next, you'll probably find it useful to declare a type alias for your lexer's `ParseStream`:
 
-```rs
+```rust
 type ParseStream<'a> = gramatika::ParseStream<'a, Token<'a>, Lexer<'a>>;
 ```
 
 Then define your syntax tree structure:
 
-```rs
+```rust
 struct Program<'a> {
 	statements: Vec<Stmt<'a>>,
 }
@@ -79,7 +79,7 @@ enum Stmt<'a> {
 
 Finally, implement `gramatika::Parse` for each of your tree nodes:
 
-```rs
+```rust
 use gramatika::{Parse, ParseStreamer, Result, Span};
 
 // ...
@@ -98,7 +98,7 @@ impl<'a> Parse<'a> for Program<'a> {
 
 With the parser implemented, you can use it to generate your tree:
 
-```rs
+```rust
 fn main<'a>() -> Result<'a, ()> {
 	let program: Program = ParseStream::from("var the_answer = 42;").parse()?;
 	Ok(())
