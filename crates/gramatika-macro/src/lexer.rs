@@ -77,7 +77,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 					token
 				})
-				.or_else(|| self.remaining.chars().peekable().peek().and_then(|c| match c {
+				.or_else(|| self.remaining.chars().next().and_then(|c| match c {
 					' ' | '\t' | '\r' => {
 						self.lookahead.character += 1;
 						self.current.character += 1;

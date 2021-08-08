@@ -1,10 +1,13 @@
 use convert_case::{Case, Casing};
+use itertools::Itertools;
 use proc_macro2::{Ident, Literal, TokenStream, TokenTree};
 use quote::format_ident;
 use syn::{
 	punctuated::Punctuated, token::Comma, Attribute, Fields, GenericParam, Generics,
 	LifetimeDef, Variant,
 };
+
+use crate::common;
 
 pub fn expand_variants(
 	variants: &Punctuated<Variant, Comma>,
@@ -15,24 +18,80 @@ pub fn expand_variants(
 			idents.push(variant.ident);
 			fields.push(variant.fields);
 
-			if let Some(attr) = variant.attrs.iter().find(|attr| {
-				let ident = attr.path.get_ident();
-				ident.is_some() && *ident.unwrap() == "pattern"
-			}) {
-				if let TokenTree::Group(group) =
-					attr.tokens.to_owned().into_iter().next().unwrap()
-				{
-					if let TokenTree::Literal(lit) =
-						group.stream().into_iter().next().unwrap()
-					{
-						patterns.push(lit);
+			let pat_literals = variant
+				.attrs
+				.iter()
+				.filter_map(|attr| {
+					let ident = attr.path.get_ident();
+					if ident.is_some() && *ident.unwrap() == "pattern" {
+						attr.tokens.clone().into_iter().find_map(|tt| match tt {
+							TokenTree::Literal(lit) => Some(lit),
+							_ => None,
+						})
+					} else {
+						None
 					}
-				}
+				})
+				.collect::<Vec<_>>();
+
+			if pat_literals.len() == 1 {
+				patterns.push(transform_regex(pat_literals.into_iter().last().unwrap()));
+			} else {
+				let combined = pat_literals
+					.iter()
+					.map(|lit| {
+						let inner = common::regex_literal(lit);
+						format!("^({})", inner)
+					})
+					.join("|");
+				let pattern =
+					syn::parse_str::<Literal>(&format!("r#\"{}\"#", combined)).unwrap();
+
+				patterns.push(pattern);
 			}
 
 			(idents, patterns, fields)
 		},
 	)
+}
+
+fn transform_regex(lit: Literal) -> Literal {
+	let inner = regex_literal(&lit);
+	if inner.starts_with('^') {
+		lit
+	} else {
+		let pattern = format!("r#\"^({})\"#", inner);
+		syn::parse_str::<Literal>(&pattern).unwrap()
+	}
+}
+
+pub fn regex_literal(lit: &Literal) -> String {
+	let source = lit.to_string();
+
+	let mut front_offset = 0;
+	let mut back_offset = 0;
+
+	for c in source.chars() {
+		match c {
+			'r' => {
+				front_offset += 1;
+			}
+			'#' => {
+				front_offset += 1;
+				back_offset += 1;
+			}
+			'"' => {
+				front_offset += 1;
+				back_offset += 1;
+				break;
+			}
+			_ => break,
+		}
+	}
+
+	let inner = &source[front_offset..source.len() - back_offset];
+
+	inner.into()
 }
 
 pub fn token_funcs(variant_idents: &[Ident]) -> (Vec<Ident>, Vec<Ident>) {

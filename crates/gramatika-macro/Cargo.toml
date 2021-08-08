@@ -12,6 +12,7 @@ path = "tests/tests.rs"
 
 [dependencies]
 convert_case = "0.4"
+itertools = "0.10"
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "1.0", features = ["full", "extra-traits"] }

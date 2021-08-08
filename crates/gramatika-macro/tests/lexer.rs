@@ -90,15 +90,19 @@ use gramatika::{Lexer as _, ParseStreamer, Span};
 
 #[derive(Debug, Token, Lexer, PartialEq)]
 enum Token<'a> {
-	#[pattern(r"^(let|var|if|for|while|return)")]
+	#[pattern = "let|var|if|for|while|return"]
 	Keyword(&'a str, Span),
-	#[pattern(r"^[a-zA-Z_][a-zA-Z0-9_]*")]
+
+	#[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	Ident(&'a str, Span),
-	#[pattern(r"^[;:{}()\[\]]")]
+
+	#[pattern = r"[;:{}()\[\]]"]
 	Punct(&'a str, Span),
-	#[pattern(r"^[-+*/=]")]
+
+	#[pattern = "[-+*/=]"]
 	Operator(&'a str, Span),
-	#[pattern(r"^[0-9]+")]
+
+	#[pattern = "[0-9]+"]
 	Literal(&'a str, Span),
 }
 
