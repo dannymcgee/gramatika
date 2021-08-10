@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::DebugLisp;
+
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct Span {
 	pub start: Position,
@@ -10,6 +12,10 @@ pub struct Span {
 pub struct Position {
 	pub line: usize,
 	pub character: usize,
+}
+
+pub trait Spanned {
+	fn span(&self) -> Span;
 }
 
 #[macro_export]
@@ -32,6 +38,14 @@ impl Span {
 			},
 		}
 	}
+
+	pub fn through(self, other: Span) -> Span {
+		Span {
+			start: self.start,
+			end: other.end,
+		}
+	}
+}
 
 impl fmt::Debug for Span {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

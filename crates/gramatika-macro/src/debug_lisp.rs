@@ -116,7 +116,7 @@ pub fn derive_token(input: TokenStream) -> TokenStream {
 					"`{}` ({:?} ({:?}))",
 					<Self as ::gramatika::Token>::lexeme(self),
 					<Self as ::gramatika::Token>::kind(self),
-					<Self as ::gramatika::Token>::span(self)
+					<Self as ::gramatika::Spanned>::span(self)
 				)
 			}
 		}

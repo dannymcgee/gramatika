@@ -1,4 +1,4 @@
-use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
+use gramatika::{Parse, ParseStreamer, Result, Spanned, SpannedError};
 
 use crate::*;
 

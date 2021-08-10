@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::Span;
-
 pub trait Lexer {
 	type Input;
 	type Output: Token;
@@ -15,7 +13,6 @@ pub trait Lexer {
 pub trait Token {
 	type Kind: fmt::Debug + PartialEq;
 
-	fn span(&self) -> Span;
 	fn lexeme(&self) -> &str;
 	fn kind(&self) -> Self::Kind;
 }

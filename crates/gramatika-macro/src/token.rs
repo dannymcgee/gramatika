@@ -97,10 +97,6 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				self.as_inner().0
 			}
 
-			fn span(&self) -> ::gramatika::Span {
-				self.as_inner().1
-			}
-
 			fn kind(&self) -> #kind_ident {
 				match self {
 					#(#ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
@@ -115,14 +111,16 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				self.as_inner().0
 			}
 
-			fn span(&self) -> ::gramatika::Span {
-				self.as_inner().1
-			}
-
 			fn kind(&self) -> #kind_ident {
 				match self {
 					#(#ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
 				}
+			}
+		}
+
+		impl#generics ::gramatika::Spanned for #ident#generics {
+			fn span(&self) -> ::gramatika::Span {
+				self.as_inner().1
 			}
 		}
 	};

@@ -1,4 +1,4 @@
-use crate::{Lexer, Result, SpannedError, Token};
+use crate::{Lexer, Result, Spanned, SpannedError, Token};
 
 pub trait Parse<'a> {
 	type Stream: ParseStreamer<'a>;
@@ -55,7 +55,7 @@ where
 
 impl<'a, T, L> ParseStreamer<'a> for ParseStream<'a, T, L>
 where
-	T: Token,
+	T: Token + Spanned,
 	L: Lexer<Input = &'a str, Output = T> + Sized,
 {
 	type Token = T;
