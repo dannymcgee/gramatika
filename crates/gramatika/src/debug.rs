@@ -1,6 +1,6 @@
 use std::fmt;
 
-const INDENT: &str = "   ";
+pub const INDENT: &str = "   ";
 
 pub trait DebugLisp {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result;
@@ -9,30 +9,17 @@ pub trait DebugLisp {
 // --- Foreign type impls ----------------------------------------------------------------
 
 impl<T> DebugLisp for Box<T>
-where T: DebugLisp
+where
+	T: DebugLisp,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
 		self.as_ref().fmt(f, indent)
 	}
 }
 
-impl<T> DebugLisp for Option<T>
-where T: DebugLisp
-{
-	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
-		match self {
-			Some(inner) => {
-				write!(f, "Some(")?;
-				inner.fmt(f, indent)?;
-				write!(f, ")")
-			}
-			None => write!(f, "None"),
-		}
-	}
-}
-
 impl<T> DebugLisp for Vec<T>
-where T: DebugLisp
+where
+	T: DebugLisp,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
 		if self.is_empty() {
@@ -60,6 +47,22 @@ where T: DebugLisp
 			}
 
 			write!(f, "]")
+		}
+	}
+}
+
+impl<T> DebugLisp for Option<T>
+where
+	T: DebugLisp,
+{
+	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
+		match self {
+			Some(inner) => {
+				write!(f, "Some(")?;
+				inner.fmt(f, indent)?;
+				write!(f, ")")
+			}
+			None => write!(f, "None"),
 		}
 	}
 }
@@ -105,6 +108,17 @@ impl<'a, 'b: 'a> DebugLispStruct<'a, 'b> {
 
 		self.has_fields = true;
 		self
+	}
+
+	pub fn optional_field(
+		&mut self,
+		name: &str,
+		value: Option<&dyn DebugLisp>,
+	) -> &mut Self {
+		match value {
+			Some(value) => self.field(name, value),
+			None => self,
+		}
 	}
 
 	pub fn finish(&mut self) -> fmt::Result {

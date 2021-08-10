@@ -110,6 +110,7 @@ pub struct UnaryExpr<'a> {
 #[derive(DebugLisp)]
 pub struct PrimaryExpr<'a> {
 	pub token: Token<'a>,
+	pub maybe: Option<Token<'a>>,
 }
 
 #[derive(DebugLisp)]
@@ -122,12 +123,14 @@ fn main() {
 		exprs: vec![Expr::Binary(BinaryExpr {
 			lhs: Box::new(Expr::Primary(PrimaryExpr {
 				token: Token::Literal("3", span![0:0...0:1]),
+				maybe: None,
 			})),
 			op: Token::Operator("+", span![0:2...0:3]),
 			rhs: Box::new(Expr::Unary(UnaryExpr {
 				op: Token::Operator("-", span![0:4...0:5]),
 				rhs: Box::new(Expr::Primary(PrimaryExpr {
 					token: Token::Literal("2", span![0:5...0:6]),
+					maybe: None,
 				})),
 			})),
 		})],

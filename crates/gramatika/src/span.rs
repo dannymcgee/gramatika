@@ -6,12 +6,6 @@ pub struct Span {
 	pub end: Position,
 }
 
-impl fmt::Debug for Span {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{:?}...{:?}", self.start, self.end)
-	}
-}
-
 #[derive(Clone, Copy, Default, PartialEq)]
 pub struct Position {
 	pub line: usize,
@@ -37,6 +31,17 @@ impl Span {
 				character: end.1,
 			},
 		}
+	}
+
+impl fmt::Debug for Span {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{:?}...{:?}", self.start, self.end)
+	}
+}
+
+impl DebugLisp for Span {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>, _: usize) -> fmt::Result {
+		fmt::Debug::fmt(self, f)
 	}
 }
 

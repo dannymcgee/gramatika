@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
 	parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, Generics, Ident,
 };
@@ -23,11 +23,17 @@ fn derive_debug_struct(
 	generics: &Generics,
 	data: &DataStruct,
 ) -> TokenStream {
-	let field_name = match &data.fields {
-		Fields::Named(ref fields) => fields
-			.named
-			.iter()
-			.map(|field| field.ident.as_ref().unwrap()),
+	let field_method_call = match &data.fields {
+		Fields::Named(ref fields) => fields.named.iter().map(|field| {
+			let ty = &field.ty;
+			let ident = field.ident.as_ref().unwrap();
+
+			if ty.to_token_stream().to_string().starts_with("Option") {
+				quote!(.optional_field(stringify!(#ident), self.#ident.as_ref().map(|inner| inner as &dyn ::gramatika::DebugLisp)))
+			} else {
+				quote!(.field(stringify!(#ident), &self.#ident))
+			}
+		}),
 		Fields::Unnamed(_) => {
 			panic!("`#[derive(DebugLisp)]` is not supported for tuple structs")
 		}
@@ -40,7 +46,7 @@ fn derive_debug_struct(
 		impl#generics ::gramatika::DebugLisp for #ident#generics {
 			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>, indent: usize) -> ::core::fmt::Result {
 				::gramatika::DebugLispStruct::new(f, indent, stringify!(#ident))
-					#(.field(stringify!(#field_name), &self.#field_name))*
+					#(#field_method_call)*
 					.finish()
 			}
 		}
@@ -84,6 +90,12 @@ fn derive_debug_enum(ident: &Ident, generics: &Generics, data: &DataEnum) -> Tok
 				)*}?;
 
 				write!(f, ")")
+			}
+		}
+
+		impl#generics ::core::fmt::Debug for #ident#generics {
+			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+				::gramatika::DebugLisp::fmt(self, f, 0)
 			}
 		}
 	};
