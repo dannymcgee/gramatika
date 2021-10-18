@@ -9,8 +9,7 @@ pub trait DebugLisp {
 // --- Foreign type impls ----------------------------------------------------------------
 
 impl<T> DebugLisp for Box<T>
-where
-	T: DebugLisp,
+where T: DebugLisp
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
 		self.as_ref().fmt(f, indent)
@@ -18,8 +17,7 @@ where
 }
 
 impl<T> DebugLisp for Vec<T>
-where
-	T: DebugLisp,
+where T: DebugLisp
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
 		if self.is_empty() {
@@ -52,8 +50,7 @@ where
 }
 
 impl<T> DebugLisp for Option<T>
-where
-	T: DebugLisp,
+where T: DebugLisp
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
 		match self {
@@ -70,6 +67,12 @@ where
 impl<T> DebugLisp for PhantomData<T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, _: usize) -> fmt::Result {
 		f.write_str("<PhantomData>")
+	}
+}
+
+impl DebugLisp for String {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>, _: usize) -> fmt::Result {
+		<Self as fmt::Debug>::fmt(self, f)
 	}
 }
 
