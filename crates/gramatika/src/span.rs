@@ -1,17 +1,33 @@
-use std::fmt;
+use std::{cmp::Ordering, fmt};
 
 use crate::DebugLisp;
 
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct Span {
 	pub start: Position,
 	pub end: Position,
 }
 
-#[derive(Clone, Copy, Default, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Position {
 	pub line: usize,
 	pub character: usize,
+}
+
+impl PartialOrd for Position {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		if self.line == other.line {
+			Some(self.character.cmp(&other.character))
+		} else {
+			Some(self.line.cmp(&other.line))
+		}
+	}
+}
+
+impl Ord for Position {
+	fn cmp(&self, other: &Self) -> Ordering {
+		self.partial_cmp(other).unwrap()
+	}
 }
 
 pub trait Spanned {
@@ -45,6 +61,10 @@ impl Span {
 			end: other.end,
 		}
 	}
+
+	pub fn contains(&self, other: Span) -> bool {
+		self.start <= other.start && self.end >= other.end
+	}
 }
 
 impl fmt::Debug for Span {
@@ -61,6 +81,6 @@ impl DebugLisp for Span {
 
 impl fmt::Debug for Position {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}:{}", self.line, self.character)
+		write!(f, "{}:{}", self.line + 1, self.character + 1)
 	}
 }

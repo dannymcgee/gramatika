@@ -36,7 +36,7 @@ pub fn expand_variants(
 
 			if pat_literals.len() == 1 {
 				patterns.push(transform_regex(pat_literals.into_iter().last().unwrap()));
-			} else {
+			} else if !pat_literals.is_empty() {
 				let combined = pat_literals
 					.iter()
 					.map(|lit| {
@@ -94,19 +94,29 @@ pub fn regex_literal(lit: &Literal) -> String {
 	inner.into()
 }
 
-pub fn token_funcs(variant_idents: &[Ident]) -> (Vec<Ident>, Vec<Ident>) {
-	variant_idents
+pub fn token_funcs(
+	variant_idents: &[Ident],
+	variant_patterns: &[Literal],
+) -> (Vec<Ident>, Vec<Ident>) {
+	let snakes = variant_idents
 		.iter()
 		.map(|ident| {
 			// FIXME: Need a more robust solution for keyword collisions
-			let snake = if *ident == "Type" {
-				"ty".into()
-			} else {
-				format!("{}", ident).to_case(Case::Snake)
-			};
-			(format_ident!("{}", snake), format_ident!("match_{}", snake))
+			match &ident.to_string()[..] {
+				"Type" => "ty".into(),
+				"Struct" => "structure".into(),
+				other => other.to_string().to_case(Case::Snake),
+			}
 		})
-		.unzip()
+		.collect::<Vec<_>>();
+
+	let ctors = snakes.iter().map(|snake| format_ident!("{}", snake));
+	let matchers = variant_patterns.iter().enumerate().map(|(idx, _)| {
+		let snake = &snakes[idx];
+		format_ident!("match_{}", snake)
+	});
+
+	(ctors.collect(), matchers.collect())
 }
 
 pub fn lifetime(generics: &Generics) -> &LifetimeDef {

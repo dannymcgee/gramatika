@@ -27,6 +27,8 @@ enum Token<'a> {
 
 	#[pattern = r#""[^"]*""#]
 	StrLiteral(&'a str, Span),
+
+	NoPattern(&'a str, Span),
 }
 
 fn main() {

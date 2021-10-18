@@ -1,6 +1,6 @@
-use std::fmt;
+use std::{fmt, marker::PhantomData};
 
-pub const INDENT: &str = "   ";
+pub const INDENT: &str = "  ";
 
 pub trait DebugLisp {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result;
@@ -64,6 +64,12 @@ where
 			}
 			None => write!(f, "None"),
 		}
+	}
+}
+
+impl<T> DebugLisp for PhantomData<T> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>, _: usize) -> fmt::Result {
+		f.write_str("<PhantomData>")
 	}
 }
 

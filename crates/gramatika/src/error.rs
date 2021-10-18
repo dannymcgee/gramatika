@@ -8,6 +8,8 @@ pub struct SpannedError<'a> {
 	pub span: Option<Span>,
 }
 
+impl<'a> std::error::Error for SpannedError<'a> {}
+
 pub type Result<'a, T> = std::result::Result<T, SpannedError<'a>>;
 
 impl<'a> fmt::Display for SpannedError<'a> {
@@ -54,5 +56,15 @@ impl<'a> fmt::Display for SpannedError<'a> {
 
 			Ok(())
 		}
+	}
+}
+
+impl<'a> fmt::Debug for SpannedError<'a> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("SpannedError")
+			.field("message", &self.message)
+			.field("source", &self.source)
+			.field("span", &self.span)
+			.finish()
 	}
 }

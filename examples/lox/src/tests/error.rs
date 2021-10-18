@@ -21,7 +21,7 @@ fun hello(param1, param2, 42) {
 }
 "#,
 		r#"
-ERROR: Expected Ident
+ERROR: Expected Ident, found NumLit
   |
 2 | fun hello(param1, param2, 42) {
   |                           ^-

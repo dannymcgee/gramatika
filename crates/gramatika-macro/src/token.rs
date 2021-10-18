@@ -18,7 +18,8 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		_ => unimplemented!(),
 	};
 
-	let (ctor_ident, matcher_ident) = common::token_funcs(&variant_ident);
+	let (ctor_ident, matcher_ident) =
+		common::token_funcs(&variant_ident, &variant_pattern);
 	let ctor_params = variant_fields
 		.iter()
 		.map(|fields| match fields {
@@ -51,13 +52,13 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		.collect::<Vec<_>>();
 
 	let result: pm2::TokenStream = quote! {
-		#[derive(Clone, Copy, Debug, PartialEq)]
+		#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 		#vis enum #kind_ident {
 			#(#variant_ident),*
 		}
 
 		impl#generics #ident#generics {
-			fn as_inner(&#lifetime self) -> (&#lifetime str, ::gramatika::Span) {
+			pub fn as_inner(&#lifetime self) -> (&#lifetime str, ::gramatika::Span) {
 				match self {#(
 					Self::#variant_ident(lexeme, span) => (*lexeme, *span)
 				),*}

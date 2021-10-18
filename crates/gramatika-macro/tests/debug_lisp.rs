@@ -139,20 +139,20 @@ fn main() {
 	let output = format!("{:#?}", ast);
 	let expected = r#"
 (Program
-   exprs: [
-      (Expr::Binary (BinaryExpr
-         lhs: (Expr::Primary (PrimaryExpr
-            token: `3` (Literal (0:0...0:1)),
-         )),
-         op: `+` (Operator (0:2...0:3)),
-         rhs: (Expr::Unary (UnaryExpr
-            op: `-` (Operator (0:4...0:5)),
-            rhs: (Expr::Primary (PrimaryExpr
-               token: `2` (Literal (0:5...0:6)),
-            )),
-         )),
+  exprs: [
+    (Expr::Binary (BinaryExpr
+      lhs: (Expr::Primary (PrimaryExpr
+        token: `3` (Literal (1:1...1:2)),
       )),
-   ],
+      op: `+` (Operator (1:3...1:4)),
+      rhs: (Expr::Unary (UnaryExpr
+        op: `-` (Operator (1:5...1:6)),
+        rhs: (Expr::Primary (PrimaryExpr
+          token: `2` (Literal (1:6...1:7)),
+        )),
+      )),
+    )),
+  ],
 )
 "#;
 

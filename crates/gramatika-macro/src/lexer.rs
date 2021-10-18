@@ -12,12 +12,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
 	let generics = &ast.generics;
 	let lifetime = common::lifetime(generics);
 
-	let (variant_ident, _, _) = match &ast.data {
+	let (variant_ident, variant_pattern, _) = match &ast.data {
 		Data::Enum(DataEnum { variants, .. }) => common::expand_variants(variants),
 		_ => unimplemented!(),
 	};
 
-	let (ctor_ident, matcher_ident) = common::token_funcs(&variant_ident);
+	let (ctor_ident, matcher_ident) =
+		common::token_funcs(&variant_ident, &variant_pattern);
 
 	let result = quote! {
 		use ::gramatika::Lexer as _;
