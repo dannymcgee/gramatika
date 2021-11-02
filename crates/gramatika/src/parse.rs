@@ -14,7 +14,11 @@ where Self: Sized
 pub trait ParseStreamer<'a> {
 	type Token: Token + Spanned;
 
-	fn parse<P: Parse<'a, Stream = Self>>(&mut self) -> Result<'a, P>;
+	fn parse<P>(&mut self) -> Result<'a, P>
+	where P: Parse<'a, Stream = Self> {
+		P::parse(self)
+	}
+
 	fn is_empty(&mut self) -> bool;
 	fn peek(&mut self) -> Option<&Self::Token>;
 	fn prev(&mut self) -> Option<&Self::Token>;
@@ -100,10 +104,6 @@ where
 	L: Lexer<Input = &'a str, Output = T> + Sized,
 {
 	type Token = T;
-
-	fn parse<P: Parse<'a, Stream = Self>>(&mut self) -> Result<'a, P> {
-		P::parse(self)
-	}
 
 	fn is_empty(&mut self) -> bool {
 		if self.peek.is_some() {
