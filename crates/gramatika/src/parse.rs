@@ -17,6 +17,7 @@ pub trait ParseStreamer<'a> {
 	fn parse<P: Parse<'a, Stream = Self>>(&mut self) -> Result<'a, P>;
 	fn is_empty(&mut self) -> bool;
 	fn peek(&mut self) -> Option<&Self::Token>;
+	fn prev(&mut self) -> Option<&Self::Token>;
 	fn check_kind(&mut self, kind: <Self::Token as Token>::Kind) -> bool;
 	fn check(&mut self, compare: Self::Token) -> bool;
 	fn consume(&mut self, compare: Self::Token) -> Result<'a, Self::Token>;
@@ -118,6 +119,14 @@ where
 			self.peek = self.lexer.scan_token();
 		}
 		self.peek.as_ref()
+	}
+
+	fn prev(&mut self) -> Option<&Self::Token> {
+		if self.tokens.is_empty() {
+			None
+		} else {
+			Some(&self.tokens[self.tokens.len() - 1])
+		}
 	}
 
 	fn check_kind(&mut self, kind: <Self::Token as Token>::Kind) -> bool {
