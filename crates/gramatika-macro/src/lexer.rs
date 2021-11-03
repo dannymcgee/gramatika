@@ -94,7 +94,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 						self.scan_token()
 					},
-					other => panic!("Unsupported input: `{}`", other),
+					other => panic!("Unsupported input: `{}` at {:?}", other, self.current),
 				}))
 			}
 		}

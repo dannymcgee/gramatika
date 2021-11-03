@@ -1,7 +1,7 @@
 use core::fmt;
 use std::mem;
 
-use crate::{Lexer, Result, Span, Spanned, SpannedError, Token};
+use crate::{Lexer, Result, Spanned, SpannedError, Token, TokenCtor};
 
 pub trait Parse<'a>
 where Self: Sized
@@ -25,25 +25,30 @@ pub trait ParseStreamer<'a> {
 	fn check_kind(&mut self, kind: <Self::Token as Token>::Kind) -> bool;
 	fn check(&mut self, compare: Self::Token) -> bool;
 	fn consume(&mut self, compare: Self::Token) -> Result<'a, Self::Token>;
+
 	fn consume_kind(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
 	) -> Result<'a, Self::Token>;
+
 	fn consume_as(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: fn(&'a str, Span) -> Self::Token,
+		convert: TokenCtor<'a, Self::Token>,
 	) -> Result<'a, Self::Token>;
+
 	fn upgrade_last(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: fn(&'a str, Span) -> Self::Token,
+		convert: TokenCtor<'a, Self::Token>,
 	) -> Result<'a, Self::Token>;
+
 	fn upgrade(
 		&mut self,
 		token: Self::Token,
-		convert: fn(&'a str, Span) -> Self::Token,
+		convert: TokenCtor<'a, Self::Token>,
 	) -> Result<'a, Self::Token>;
+
 	fn discard(&mut self);
 }
 
@@ -83,7 +88,7 @@ where
 		(self.input, self.tokens)
 	}
 
-	fn upcast(token: T, convert: fn(&'a str, Span) -> T) -> T {
+	fn upcast(token: T, convert: TokenCtor<'a, T>) -> T {
 		// T and L are linked in that L is constrained by `Lexer<Input = &'a str, Output = T>`
 		// I suppose it would be possible for a user to implement Lexer and Token in such a
 		// way that `Token::lexeme` returns a `&str` with a lifetime that's shorter than
@@ -189,7 +194,7 @@ where
 	fn consume_as(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: fn(&'a str, Span) -> Self::Token,
+		convert: TokenCtor<'a, Self::Token>,
 	) -> Result<'a, Self::Token> {
 		self.next()
 			.and_then(|_| {
@@ -219,7 +224,7 @@ where
 	fn upgrade_last(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: fn(&'a str, Span) -> Self::Token,
+		convert: TokenCtor<'a, Self::Token>,
 	) -> Result<'a, Self::Token> {
 		self.tokens
 			.pop()
@@ -249,7 +254,7 @@ where
 	fn upgrade(
 		&mut self,
 		token: Self::Token,
-		convert: fn(&'a str, Span) -> Self::Token,
+		convert: TokenCtor<'a, Self::Token>,
 	) -> Result<'a, Self::Token> {
 		let found = self
 			.tokens

@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::Span;
+
 pub trait Lexer {
 	type Input;
 	type Output: Token;
@@ -16,3 +18,6 @@ pub trait Token {
 	fn lexeme(&self) -> &str;
 	fn kind(&self) -> Self::Kind;
 }
+
+#[allow(type_alias_bounds)]
+pub type TokenCtor<'a, T: Token> = fn(&'a str, Span) -> T;
