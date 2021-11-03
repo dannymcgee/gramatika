@@ -23,7 +23,7 @@ pub enum Token<'a> {
 	#[pattern = "[0-9]+"]
 	NumLit(&'a str, Span),
 
-	#[pattern = r#""[^"]+""#]
+	#[pattern = r#""[^"]*""#]
 	StrLit(&'a str, Span),
 }
 

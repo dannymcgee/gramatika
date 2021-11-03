@@ -1,0 +1,13 @@
+fun makeCounter() {
+	var i = 0;
+	fun count() {
+		i = i + 1;
+		return i;
+	}
+	return count;
+}
+
+var tick = makeCounter();
+for (var i = 0; i < 100; i = i + 1) {
+	print tick();
+}

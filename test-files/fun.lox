@@ -1,0 +1,49 @@
+fun printSum(a, b) {
+	print a + b;
+}
+
+fun returnSum(a, b) {
+	return a + b;
+}
+
+printSum(400, 20);
+print returnSum(60, 9);
+
+var sumLambda = fun (a, b) {
+	return a + b;
+};
+print sumLambda(40, 2);
+
+fun addPairs(a, b) {
+	return a + b;
+}
+fun identity(a) {
+	return a;
+}
+print identity(addPairs)(1, 2);
+
+fun outerFunction() {
+	fun localFunction () {
+		print "I'm local!";
+	}
+	localFunction();
+}
+outerFunction();
+
+fun returnFunction() {
+	var outside = "outside";
+	fun inner() {
+		print outside;
+	}
+
+	return inner;
+}
+var foo = returnFunction();
+foo();
+
+fun init() {
+	return "Uh oh, I'm not a class method!";
+}
+
+var notClass = init();
+print notClass;

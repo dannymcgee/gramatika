@@ -14,7 +14,15 @@ use expr::*;
 use stmt::*;
 use tokens::*;
 
+pub use tokens::Lexer;
+
+use gramatika::ParseStreamer;
+
 type ParseStream<'a> = gramatika::ParseStream<'a, Token<'a>, Lexer<'a>>;
+
+pub fn parse<'a>(input: String) -> gramatika::Result<'a, Program<'a>> {
+	ParseStream::from(input).parse()
+}
 
 #[cfg(test)]
 mod tests;
