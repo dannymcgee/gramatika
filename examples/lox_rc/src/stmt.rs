@@ -78,25 +78,23 @@ impl Parse for Stmt {
 
 		match input.peek() {
 			Some(token) => match token {
-				Keyword(lex, _) if matches!(&**lex, "class" | "fun" | "var") => {
+				Keyword(lex, _) if matches!(lex.as_str(), "class" | "fun" | "var") => {
 					Ok(Stmt::Decl(input.parse::<Decl>()?))
 				}
-				Keyword(lex, _) if &**lex == "for" => {
+				Keyword(lex, _) if lex == "for" => {
 					Ok(Stmt::For(input.parse::<ForStmt>()?))
 				}
-				Keyword(lex, _) if &**lex == "if" => {
-					Ok(Stmt::If(input.parse::<IfStmt>()?))
-				}
-				Keyword(lex, _) if &**lex == "print" => {
+				Keyword(lex, _) if lex == "if" => Ok(Stmt::If(input.parse::<IfStmt>()?)),
+				Keyword(lex, _) if lex == "print" => {
 					Ok(Stmt::Print(input.parse::<PrintStmt>()?))
 				}
-				Keyword(lex, _) if &**lex == "return" => {
+				Keyword(lex, _) if lex == "return" => {
 					Ok(Stmt::Return(input.parse::<ReturnStmt>()?))
 				}
-				Keyword(lex, _) if &**lex == "while" => {
+				Keyword(lex, _) if lex == "while" => {
 					Ok(Stmt::While(input.parse::<WhileStmt>()?))
 				}
-				Brace(lex, _) if &**lex == "{" => {
+				Brace(lex, _) if lex == "{" => {
 					input.consume(brace!["{"])?;
 
 					let mut stmts = vec![];

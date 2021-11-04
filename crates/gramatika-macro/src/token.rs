@@ -83,14 +83,14 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			macro_rules! #ctor_ident {
 				($lexeme:literal) => {
 					#ident::#ctor_ident(
-						::gramatika::arcstr::literal!($lexeme).substr(..),
-						::gramatika::Span::default()
+						::gramatika::arcstr::literal_substr!($lexeme),
+						::gramatika::Span::default(),
 					)
 				};
 				($lexeme:tt) => {
 					#ident::#ctor_ident(
-						::gramatika::arcstr::literal!(stringify!($lexeme)).substr(..),
-						::gramatika::Span::default()
+						::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+						::gramatika::Span::default(),
 					)
 				};
 			}

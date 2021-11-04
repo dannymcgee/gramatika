@@ -237,12 +237,12 @@ impl RecursiveDescent for ParseStream {
 		let mut expr = self.primary()?;
 		expr = loop {
 			match self.peek() {
-				Some(Brace(lex, _)) if &**lex == "(" => {
+				Some(Brace(lex, _)) if lex == "(" => {
 					self.consume(brace!["("])?;
 
 					expr = self.finish_call(expr)?;
 				}
-				Some(Punct(lex, _)) if &**lex == "." => {
+				Some(Punct(lex, _)) if lex == "." => {
 					self.consume(punct![.])?;
 					let name = self.consume_kind(TokenKind::Ident)?;
 
@@ -281,10 +281,10 @@ impl RecursiveDescent for ParseStream {
 		match self.next() {
 			Some(token) => match token.clone() {
 				NumLit(_, _) | StrLit(_, _) => Ok(Expr::Literal(token)),
-				Keyword(lex, _) if matches!(&*lex, "true" | "false" | "nil") => {
+				Keyword(lex, _) if matches!(lex.as_str(), "true" | "false" | "nil") => {
 					Ok(Expr::Literal(token))
 				}
-				Keyword(lex, _) if &*lex == "super" => {
+				Keyword(lex, _) if lex == "super" => {
 					self.consume(punct![.])?;
 					let method = self.consume_kind(TokenKind::Ident)?;
 
@@ -293,9 +293,9 @@ impl RecursiveDescent for ParseStream {
 						method,
 					}))
 				}
-				Keyword(lex, _) if &*lex == "this" => Ok(Expr::This(token)),
-				Keyword(lex, _) if &*lex == "fun" => Ok(Expr::Fun(self.parse()?)),
-				Brace(lex, _) if &*lex == "(" => {
+				Keyword(lex, _) if lex == "this" => Ok(Expr::This(token)),
+				Keyword(lex, _) if lex == "fun" => Ok(Expr::Fun(self.parse()?)),
+				Brace(lex, _) if lex == "(" => {
 					let expr = self.parse::<Expr>()?;
 					self.consume(brace![")"])?;
 

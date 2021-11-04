@@ -130,64 +130,106 @@ impl Token {
 #[macro_export]
 macro_rules! brace {
 	($lexeme:literal) => {
-		Token::brace($lexeme.into(), ::gramatika::Span::default())
+		Token::brace(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
 	($lexeme:tt) => {
-		Token::brace(stringify!($lexeme).into(), ::gramatika::Span::default())
+		Token::brace(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 #[macro_export]
 macro_rules! ident {
 	($lexeme:literal) => {
-		Token::ident($lexeme.into(), ::gramatika::Span::default())
+		Token::ident(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
 	($lexeme:tt) => {
-		Token::ident(stringify!($lexeme).into(), ::gramatika::Span::default())
+		Token::ident(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 #[macro_export]
 macro_rules! keyword {
 	($lexeme:literal) => {
-		Token::keyword($lexeme.into(), ::gramatika::Span::default())
+		Token::keyword(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
 	($lexeme:tt) => {
-		Token::keyword(stringify!($lexeme).into(), ::gramatika::Span::default())
+		Token::keyword(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 #[macro_export]
 macro_rules! num_lit {
 	($lexeme:literal) => {
-		Token::num_lit($lexeme.into(), ::gramatika::Span::default())
+		Token::num_lit(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
 	($lexeme:tt) => {
-		Token::num_lit(stringify!($lexeme).into(), ::gramatika::Span::default())
+		Token::num_lit(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 #[macro_export]
 macro_rules! str_lit {
 	($lexeme:literal) => {
-		Token::str_lit($lexeme.into(), ::gramatika::Span::default())
+		Token::str_lit(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
 	($lexeme:tt) => {
-		Token::str_lit(stringify!($lexeme).into(), ::gramatika::Span::default())
+		Token::str_lit(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 #[macro_export]
 macro_rules! operator {
 	($lexeme:literal) => {
-		Token::operator($lexeme.into(), ::gramatika::Span::default())
+		Token::operator(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
 	($lexeme:tt) => {
-		Token::operator(stringify!($lexeme).into(), ::gramatika::Span::default())
+		Token::operator(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 #[macro_export]
 macro_rules! punct {
 	($lexeme:literal) => {
-		Token::punct($lexeme.into(), ::gramatika::Span::default())
+		Token::punct(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
 	($lexeme:tt) => {
-		Token::punct(stringify!($lexeme).into(), ::gramatika::Span::default())
+		Token::punct(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 pub use {brace, ident, keyword, num_lit, operator, punct, str_lit};
