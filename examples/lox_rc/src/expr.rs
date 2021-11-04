@@ -5,7 +5,7 @@ use crate::{
 	parse::ParseStream,
 	punct,
 	stmt::Stmt,
-	tokens::{Token, TokenKind},
+	tokens::{Keyword, Token, TokenKind},
 };
 
 #[derive(DebugLisp)]
@@ -276,15 +276,13 @@ impl RecursiveDescent for ParseStream {
 	}
 
 	fn primary(&mut self) -> Result<Expr> {
-		use Token::*;
-
 		match self.next() {
 			Some(token) => match token.clone() {
-				NumLit(_, _) | StrLit(_, _) => Ok(Expr::Literal(token)),
-				Keyword(lex, _) if matches!(lex.as_str(), "true" | "false" | "nil") => {
+				Token::NumLit(_, _) | Token::StrLit(_, _) => Ok(Expr::Literal(token)),
+				Token::Keyword(Keyword::True | Keyword::False | Keyword::Nil, _) => {
 					Ok(Expr::Literal(token))
 				}
-				Keyword(lex, _) if lex == "super" => {
+				Token::Keyword(Keyword::Super, _) => {
 					self.consume(punct![.])?;
 					let method = self.consume_kind(TokenKind::Ident)?;
 
@@ -293,15 +291,15 @@ impl RecursiveDescent for ParseStream {
 						method,
 					}))
 				}
-				Keyword(lex, _) if lex == "this" => Ok(Expr::This(token)),
-				Keyword(lex, _) if lex == "fun" => Ok(Expr::Fun(self.parse()?)),
-				Brace(lex, _) if lex == "(" => {
+				Token::Keyword(Keyword::This, _) => Ok(Expr::This(token)),
+				Token::Keyword(Keyword::Fun, _) => Ok(Expr::Fun(self.parse()?)),
+				Token::Brace(lex, _) if lex == "(" => {
 					let expr = self.parse::<Expr>()?;
 					self.consume(brace![")"])?;
 
 					Ok(Expr::Grouping(Box::new(expr)))
 				}
-				Ident(_, _) => Ok(Expr::Variable(token)),
+				Token::Ident(_, _) => Ok(Expr::Variable(token)),
 				other => Err(SpannedError {
 					message: "Expected expression".into(),
 					source: self.source(),

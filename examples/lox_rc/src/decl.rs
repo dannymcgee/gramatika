@@ -6,7 +6,7 @@ use crate::{
 	operator,
 	parse::ParseStream,
 	punct,
-	tokens::{Token, TokenKind},
+	tokens::{Keyword, Token, TokenKind},
 };
 
 #[derive(DebugLisp)]
@@ -39,16 +39,14 @@ impl Parse for Decl {
 	type Stream = ParseStream;
 
 	fn parse(input: &mut Self::Stream) -> Result<Self> {
-		use Token::*;
-
 		match input.next() {
-			Some(Keyword(lex, _)) if lex == "class" => {
+			Some(Token::Keyword(Keyword::Class, _)) => {
 				Ok(Decl::Class(input.parse::<ClassDecl>()?))
 			}
-			Some(Keyword(lex, _)) if lex == "fun" => {
+			Some(Token::Keyword(Keyword::Fun, _)) => {
 				Ok(Decl::Fun(input.parse::<FunDecl>()?))
 			}
-			Some(Keyword(lex, _)) if lex == "var" => {
+			Some(Token::Keyword(Keyword::Var, _)) => {
 				Ok(Decl::Variable(input.parse::<VariableDecl>()?))
 			}
 			Some(other) => Err(SpannedError {

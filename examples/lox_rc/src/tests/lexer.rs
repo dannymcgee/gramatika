@@ -1,4 +1,7 @@
-use crate::{lexer::Lexer, tokens::Token};
+use crate::{
+	lexer::Lexer,
+	tokens::{Keyword, Token},
+};
 use gramatika::Lexer as _;
 
 macro_rules! span {
@@ -9,20 +12,18 @@ macro_rules! span {
 
 #[test]
 fn it_works() {
-	use Token::*;
-
 	let input = "var foo = 2 + 2;";
 	let mut lexer = Lexer::new(input.into());
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Keyword("var".into(), span![0:0...0:3]),
-		Ident("foo".into(), span![0:4...0:7]),
-		Operator("=".into(), span![0:8...0:9]),
-		NumLit("2".into(), span![0:10...0:11]),
-		Operator("+".into(), span![0:12...0:13]),
-		NumLit("2".into(), span![0:14...0:15]),
-		Punct(";".into(), span![0:15...0:16]),
+		Token::Keyword(Keyword::Var, span![0:0...0:3]),
+		Token::Ident("foo".into(), span![0:4...0:7]),
+		Token::Operator("=".into(), span![0:8...0:9]),
+		Token::NumLit("2".into(), span![0:10...0:11]),
+		Token::Operator("+".into(), span![0:12...0:13]),
+		Token::NumLit("2".into(), span![0:14...0:15]),
+		Token::Punct(";".into(), span![0:15...0:16]),
 	];
 
 	assert_eq!(tokens, expected);
@@ -30,8 +31,6 @@ fn it_works() {
 
 #[test]
 fn multi_line() {
-	use self::Token::*;
-
 	let input = "
 var foo = 2 + 2;
 var bar = foo + foo;
@@ -40,21 +39,21 @@ var bar = foo + foo;
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Keyword("var".into(), span![1:0...1:3]),
-		Ident("foo".into(), span![1:4...1:7]),
-		Operator("=".into(), span![1:8...1:9]),
-		NumLit("2".into(), span![1:10...1:11]),
-		Operator("+".into(), span![1:12...1:13]),
-		NumLit("2".into(), span![1:14...1:15]),
-		Punct(";".into(), span![1:15...1:16]),
+		Token::Keyword(Keyword::Var, span![1:0...1:3]),
+		Token::Ident("foo".into(), span![1:4...1:7]),
+		Token::Operator("=".into(), span![1:8...1:9]),
+		Token::NumLit("2".into(), span![1:10...1:11]),
+		Token::Operator("+".into(), span![1:12...1:13]),
+		Token::NumLit("2".into(), span![1:14...1:15]),
+		Token::Punct(";".into(), span![1:15...1:16]),
 		// ...
-		Keyword("var".into(), span![2:0...2:3]),
-		Ident("bar".into(), span![2:4...2:7]),
-		Operator("=".into(), span![2:8...2:9]),
-		Ident("foo".into(), span![2:10...2:13]),
-		Operator("+".into(), span![2:14...2:15]),
-		Ident("foo".into(), span![2:16...2:19]),
-		Punct(";".into(), span![2:19...2:20]),
+		Token::Keyword(Keyword::Var, span![2:0...2:3]),
+		Token::Ident("bar".into(), span![2:4...2:7]),
+		Token::Operator("=".into(), span![2:8...2:9]),
+		Token::Ident("foo".into(), span![2:10...2:13]),
+		Token::Operator("+".into(), span![2:14...2:15]),
+		Token::Ident("foo".into(), span![2:16...2:19]),
+		Token::Punct(";".into(), span![2:19...2:20]),
 	];
 
 	assert_eq!(tokens, expected);
