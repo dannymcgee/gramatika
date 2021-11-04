@@ -1,6 +1,6 @@
-use gramatika::ParseStreamer;
+use gramatika::{Lexer as _, ParseStreamer};
 
-use crate::{parse::ParseStream, stmt::Program};
+use crate::{parse::ParseStream, stmt::Program, Lexer};
 
 #[test]
 fn print_stmt() {
@@ -168,15 +168,14 @@ fn test_programs() {
 }
 
 fn parse(input: &str) {
-	eprintln!("input: {}", input);
-
 	let mut parser = ParseStream::from(input);
 
 	match parser.parse::<Program>() {
-		Ok(program) => {
-			eprintln!("{:#?}", program);
-		}
+		Ok(_) => {}
 		Err(err) => {
+			let mut lexer = Lexer::new(input.into());
+
+			eprintln!("{:#?}", lexer.scan());
 			eprintln!("{}", err);
 			panic!();
 		}

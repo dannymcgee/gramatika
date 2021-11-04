@@ -30,7 +30,7 @@ pub enum Token {
 	StrLit(Substr, Span),
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Keyword {
 	And,
 	Class,
