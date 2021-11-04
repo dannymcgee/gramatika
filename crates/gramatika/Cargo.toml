@@ -9,6 +9,7 @@ repository = "http://github.com/dannymcgee/gramatika"
 description = "A minimal toolkit for writing parsers with Rust"
 
 [dependencies]
+arcstr = { version = "1.1", features = ["substr"] }
 lazy_static = { version = "1.4", optional = true }
 regex = { version = "1.5", optional = true }
 

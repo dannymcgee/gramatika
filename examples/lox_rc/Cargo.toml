@@ -5,3 +5,4 @@ edition = "2018"
 
 [dependencies]
 gramatika = { path = "../../crates/gramatika", features = ["macros"] }
+arcstr = { version = "1", features = ["substr"] }

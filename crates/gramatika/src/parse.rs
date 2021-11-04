@@ -1,21 +1,24 @@
 use core::fmt;
-use std::mem;
 
-use crate::{Lexer, Result, Spanned, SpannedError, Token, TokenCtor};
+use arcstr::{ArcStr, Substr};
 
-pub trait Parse<'a>
+use crate::{Lexer, Result, Span, Spanned, SpannedError, Token};
+
+pub type TokenCtor<T> = fn(Substr, Span) -> T;
+
+pub trait Parse
 where Self: Sized
 {
-	type Stream: ParseStreamer<'a>;
+	type Stream: ParseStreamer;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self>;
+	fn parse(input: &mut Self::Stream) -> Result<Self>;
 }
 
-pub trait ParseStreamer<'a> {
+pub trait ParseStreamer {
 	type Token: Token + Spanned;
 
-	fn parse<P>(&mut self) -> Result<'a, P>
-	where P: Parse<'a, Stream = Self> {
+	fn parse<P>(&mut self) -> Result<P>
+	where P: Parse<Stream = Self> {
 		P::parse(self)
 	}
 
@@ -24,77 +27,66 @@ pub trait ParseStreamer<'a> {
 	fn prev(&mut self) -> Option<&Self::Token>;
 	fn check_kind(&mut self, kind: <Self::Token as Token>::Kind) -> bool;
 	fn check(&mut self, compare: Self::Token) -> bool;
-	fn consume(&mut self, compare: Self::Token) -> Result<'a, Self::Token>;
-
-	fn consume_kind(
-		&mut self,
-		kind: <Self::Token as Token>::Kind,
-	) -> Result<'a, Self::Token>;
+	fn consume(&mut self, compare: Self::Token) -> Result<Self::Token>;
+	fn consume_kind(&mut self, kind: <Self::Token as Token>::Kind)
+		-> Result<Self::Token>;
 
 	fn consume_as(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: TokenCtor<'a, Self::Token>,
-	) -> Result<'a, Self::Token>;
+		convert: TokenCtor<Self::Token>,
+	) -> Result<Self::Token>;
 
 	fn upgrade_last(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: TokenCtor<'a, Self::Token>,
-	) -> Result<'a, Self::Token>;
+		convert: TokenCtor<Self::Token>,
+	) -> Result<Self::Token>;
 
 	fn upgrade(
 		&mut self,
 		token: Self::Token,
-		convert: TokenCtor<'a, Self::Token>,
-	) -> Result<'a, Self::Token>;
+		convert: TokenCtor<Self::Token>,
+	) -> Result<Self::Token>;
 
 	fn discard(&mut self);
 }
 
-pub struct ParseStream<'a, T, L>
+pub struct ParseStream<T, L>
 where
 	T: Token + Spanned,
-	L: Lexer<Input = &'a str, Output = T> + Sized,
+	L: Lexer<Output = T>,
 {
-	input: String,
+	input: ArcStr,
 	lexer: L,
 	peek: Option<T>,
 	tokens: Vec<T>,
 }
 
-impl<'a, T, L> ParseStream<'a, T, L>
+impl<T, L> ParseStream<T, L>
 where
-	T: Token + Spanned + Copy,
-	L: Lexer<Input = &'a str, Output = T> + Sized,
+	T: Token + Spanned,
+	L: Lexer<Output = T>,
 {
 	pub fn new(lexer: L) -> Self {
 		Self {
-			input: lexer.source().into(),
+			input: lexer.source(),
 			lexer,
 			peek: None,
 			tokens: vec![],
 		}
 	}
 
-	pub fn source(&self) -> &'a str {
-		// This struct owns the String that the returned `&str` references, which is the
-		// same String that's leant to our lexer as `&'a str`, so unless I'm very badly
-		// mistaken, the lifetime of `&self.input` == `'a`
-		unsafe { with_lifetime(&self.input) }
+	pub fn source(&self) -> ArcStr {
+		ArcStr::clone(&self.input)
 	}
 
-	pub fn into_inner(self) -> (String, Vec<T>) {
+	pub fn into_inner(self) -> (ArcStr, Vec<T>) {
 		(self.input, self.tokens)
 	}
 
-	fn upcast(token: T, convert: TokenCtor<'a, T>) -> T {
-		// T and L are linked in that L is constrained by `Lexer<Input = &'a str, Output = T>`
-		// I suppose it would be possible for a user to implement Lexer and Token in such a
-		// way that `Token::lexeme` returns a `&str` with a lifetime that's shorter than
-		// the one bound to `Lexer::Input`, but that's not a use case I'm overly concerned
-		// with at the moment.
-		let lexeme = unsafe { with_lifetime(token.lexeme()) };
+	fn upcast(token: T, convert: TokenCtor<T>) -> T {
+		let lexeme = token.lexeme();
 		let span = token.span();
 
 		convert(lexeme, span)
@@ -103,10 +95,10 @@ where
 
 // --- ParseStreamer impl ----------------------------------------------------------------
 
-impl<'a, T, L> ParseStreamer<'a> for ParseStream<'a, T, L>
+impl<T, L> ParseStreamer for ParseStream<T, L>
 where
-	T: Token + Spanned + Copy + fmt::Debug,
-	L: Lexer<Input = &'a str, Output = T> + Sized,
+	T: Token + Spanned + fmt::Debug,
+	L: Lexer<Output = T>,
 {
 	type Token = T;
 
@@ -144,7 +136,7 @@ where
 		})
 	}
 
-	fn consume(&mut self, compare: Self::Token) -> Result<'a, Self::Token> {
+	fn consume(&mut self, compare: Self::Token) -> Result<Self::Token> {
 		self.next()
 			.map(|token| {
 				if token.kind() == compare.kind() && token.lexeme() == compare.lexeme() {
@@ -169,7 +161,7 @@ where
 	fn consume_kind(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-	) -> Result<'a, Self::Token> {
+	) -> Result<Self::Token> {
 		self.next()
 			.map(|token| {
 				if token.kind() == kind {
@@ -194,14 +186,14 @@ where
 	fn consume_as(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: TokenCtor<'a, Self::Token>,
-	) -> Result<'a, Self::Token> {
+		convert: TokenCtor<Self::Token>,
+	) -> Result<Self::Token> {
 		self.next()
 			.and_then(|_| {
 				let token = self.tokens.pop()?;
 				if token.kind() == kind {
 					let converted = Self::upcast(token, convert);
-					self.tokens.push(converted);
+					self.tokens.push(converted.clone());
 
 					Some(Ok(converted))
 				} else {
@@ -224,14 +216,14 @@ where
 	fn upgrade_last(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
-		convert: TokenCtor<'a, Self::Token>,
-	) -> Result<'a, Self::Token> {
+		convert: TokenCtor<Self::Token>,
+	) -> Result<Self::Token> {
 		self.tokens
 			.pop()
 			.map(|token| {
 				if token.kind() == kind {
 					let converted = Self::upcast(token, convert);
-					self.tokens.push(converted);
+					self.tokens.push(converted.clone());
 
 					Ok(converted)
 				} else {
@@ -254,15 +246,15 @@ where
 	fn upgrade(
 		&mut self,
 		token: Self::Token,
-		convert: TokenCtor<'a, Self::Token>,
-	) -> Result<'a, Self::Token> {
+		convert: TokenCtor<Self::Token>,
+	) -> Result<Self::Token> {
 		let found = self
 			.tokens
 			.iter_mut()
 			.find(|tok| tok.span() == token.span());
 		if let Some(tok) = found {
 			*tok = Self::upcast(token, convert);
-			Ok(*tok)
+			Ok(tok.clone())
 		} else {
 			panic!("Unable to find token in stream: {:?}", token);
 		}
@@ -275,10 +267,10 @@ where
 
 // --- Iterator --------------------------------------------------------------------------
 
-impl<'a, T, L> Iterator for ParseStream<'a, T, L>
+impl<T, L> Iterator for ParseStream<T, L>
 where
-	T: Token + Spanned + Copy,
-	L: Lexer<Input = &'a str, Output = T> + Sized,
+	T: Token + Spanned,
+	L: Lexer<Output = T>,
 {
 	type Item = T;
 
@@ -288,7 +280,7 @@ where
 		} else {
 			self.lexer.scan_token()
 		}?;
-		self.tokens.push(next);
+		self.tokens.push(next.clone());
 
 		Some(next)
 	}
@@ -296,55 +288,15 @@ where
 
 // --- Conversions -----------------------------------------------------------------------
 
-impl<'a, T, L> From<L> for ParseStream<'a, T, L>
+impl<S, T, L> From<S> for ParseStream<T, L>
 where
-	T: Token + Spanned + Copy,
-	L: Lexer<Input = &'a str, Output = T> + Sized,
-{
-	fn from(lexer: L) -> Self {
-		Self::new(lexer)
-	}
-}
-
-impl<'a, T, L> From<&'a str> for ParseStream<'a, T, L>
-where
+	S: Into<ArcStr>,
 	T: Token + Spanned,
-	L: Lexer<Input = &'a str, Output = T> + Sized,
+	L: Lexer<Output = T>,
 {
-	fn from(input: &'a str) -> Self {
-		let lexer = L::new(input);
-
-		Self {
-			input: input.into(),
-			lexer,
-			peek: None,
-			tokens: vec![],
-		}
-	}
-}
-
-impl<'a, T, L> From<String> for ParseStream<'a, T, L>
-where
-	T: Token + Spanned,
-	L: Lexer<Input = &'a str, Output = T> + Sized,
-{
-	fn from(input: String) -> Self {
-		// The compiler complains that we're moving out of a shared reference (when giving
-		// `input` to `Self` below), and that `input` doesn't live long enough because it's
-		// dropped at the end of this function. It is very much not dropped, because we are
-		// taking ownership of both it and the lexer.
-		//
-		// In reality, the borrow will live at least as long as the ParseStream we're
-		// returning, and potentially longer via its `into_inner` method, which consumes it
-		// and returns both the backing String and the tokens scanned from it.
-		//
-		// FIXME: It would technically be possible for the user to do something unexpected
-		// like call `into_inner`, drop the returned String, and continue trying to use the
-		// returned tokens, which would (I think?) eventually lead to those tokens pointing
-		// to memory that's no longer valid. It might be worth adding some warnings to
-		// indicate how this needs to be used in order to remain safe, or else figuring out
-		// how to constrain the lifetime of the tokens by the lifetime of `input`.
-		let lexer = L::new(unsafe { with_lifetime(input.as_str()) });
+	fn from(input: S) -> Self {
+		let input = input.into();
+		let lexer = L::new(ArcStr::clone(&input));
 
 		Self {
 			input,
@@ -353,12 +305,4 @@ where
 			tokens: vec![],
 		}
 	}
-}
-
-/// This is some seriously hacky bullshit, but we only actually use it to assert that the
-/// lifetime of some &str is equal to an actual, known lifetime in a handful of places
-/// where we know that to be true but the compiler is unable to statically verify it.
-unsafe fn with_lifetime<'a, 'b>(string: &'b str) -> &'a str
-where 'a: 'b {
-	mem::transmute::<&'b str, &'a str>(string)
 }

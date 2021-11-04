@@ -154,7 +154,22 @@ for (var i = 0; i < 10; i = i + 1) {
 	);
 }
 
+#[test]
+fn test_programs() {
+	parse(include_str!("../../../../test-files/classes.lox"));
+	parse(include_str!("../../../../test-files/counter.lox"));
+	parse(include_str!("../../../../test-files/fib.lox"));
+	parse(include_str!("../../../../test-files/fizzbuzz1.lox"));
+	parse(include_str!("../../../../test-files/fizzbuzz2.lox"));
+	parse(include_str!("../../../../test-files/forloop.lox"));
+	parse(include_str!("../../../../test-files/fun-expressions.lox"));
+	parse(include_str!("../../../../test-files/fun.lox"));
+	parse(include_str!("../../../../test-files/linked-list.lox"));
+}
+
 fn parse(input: &str) {
+	eprintln!("input: {}", input);
+
 	let mut parser = ParseStream::from(input);
 
 	match parser.parse::<Program>() {

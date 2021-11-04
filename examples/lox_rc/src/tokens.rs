@@ -1,32 +1,33 @@
 #![allow(unused_macros, dead_code)]
 
-use std::{fmt, rc::Rc};
+use std::fmt;
 
-use gramatika::{DebugLisp, Regex, Span, Spanned, Token as _, _Match, lazy_static};
+use arcstr::Substr;
+use gramatika::{lazy_static, DebugLisp, Match, Regex, Span, Spanned, Token as _};
 
 #[derive(PartialEq)]
 pub enum Token {
 	// #[pattern = r"(and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while)\b"]
-	Keyword(Rc<str>, Span),
+	Keyword(Substr, Span),
 
 	// #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
-	Ident(Rc<str>, Span),
+	Ident(Substr, Span),
 
 	// #[pattern = r"[(){}]"]
-	Brace(Rc<str>, Span),
+	Brace(Substr, Span),
 
 	// #[pattern = "[,.;]"]
-	Punct(Rc<str>, Span),
+	Punct(Substr, Span),
 
 	// #[pattern = "[=!<>]=?"]
 	// #[pattern = "[-+*/]"]
-	Operator(Rc<str>, Span),
+	Operator(Substr, Span),
 
 	// #[pattern = "[0-9]+"]
-	NumLit(Rc<str>, Span),
+	NumLit(Substr, Span),
 
 	// #[pattern = r#""[^"]*""#]
-	StrLit(Rc<str>, Span),
+	StrLit(Substr, Span),
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -41,173 +42,152 @@ pub enum TokenKind {
 }
 
 impl Token {
-	pub fn as_inner(&self) -> (&str, Span) {
+	pub fn as_inner(&self) -> (Substr, Span) {
 		use Token::*;
 
 		match self {
-			Keyword(lexeme, span) => (&*lexeme, *span),
-			Ident(lexeme, span) => (&*lexeme, *span),
-			Brace(lexeme, span) => (&*lexeme, *span),
-			Punct(lexeme, span) => (&*lexeme, *span),
-			Operator(lexeme, span) => (&*lexeme, *span),
-			NumLit(lexeme, span) => (&*lexeme, *span),
-			StrLit(lexeme, span) => (&*lexeme, *span),
+			Keyword(lexeme, span) => (lexeme.clone(), *span),
+			Ident(lexeme, span) => (lexeme.clone(), *span),
+			Brace(lexeme, span) => (lexeme.clone(), *span),
+			Punct(lexeme, span) => (lexeme.clone(), *span),
+			Operator(lexeme, span) => (lexeme.clone(), *span),
+			NumLit(lexeme, span) => (lexeme.clone(), *span),
+			StrLit(lexeme, span) => (lexeme.clone(), *span),
 		}
 	}
 
 	// Constructors
-	pub fn keyword<S>(lexeme: S, span: Span) -> Self
-	where S: Into<Rc<str>> {
-		Self::Keyword(lexeme.into(), span)
+	pub fn keyword(lexeme: Substr, span: Span) -> Self {
+		Self::Keyword(lexeme, span)
 	}
-	pub fn ident<S>(lexeme: S, span: Span) -> Self
-	where S: Into<Rc<str>> {
-		Self::Ident(lexeme.into(), span)
+	pub fn ident(lexeme: Substr, span: Span) -> Self {
+		Self::Ident(lexeme, span)
 	}
-	pub fn brace<S>(lexeme: S, span: Span) -> Self
-	where S: Into<Rc<str>> {
-		Self::Brace(lexeme.into(), span)
+	pub fn brace(lexeme: Substr, span: Span) -> Self {
+		Self::Brace(lexeme, span)
 	}
-	pub fn punct<S>(lexeme: S, span: Span) -> Self
-	where S: Into<Rc<str>> {
-		Self::Punct(lexeme.into(), span)
+	pub fn punct(lexeme: Substr, span: Span) -> Self {
+		Self::Punct(lexeme, span)
 	}
-	pub fn operator<S>(lexeme: S, span: Span) -> Self
-	where S: Into<Rc<str>> {
-		Self::Operator(lexeme.into(), span)
+	pub fn operator(lexeme: Substr, span: Span) -> Self {
+		Self::Operator(lexeme, span)
 	}
-	pub fn num_lit<S>(lexeme: S, span: Span) -> Self
-	where S: Into<Rc<str>> {
-		Self::NumLit(lexeme.into(), span)
+	pub fn num_lit(lexeme: Substr, span: Span) -> Self {
+		Self::NumLit(lexeme, span)
 	}
-	pub fn str_lit<S>(lexeme: S, span: Span) -> Self
-	where S: Into<Rc<str>> {
-		Self::StrLit(lexeme.into(), span)
+	pub fn str_lit(lexeme: Substr, span: Span) -> Self {
+		Self::StrLit(lexeme, span)
 	}
 
 	// Matchers
-	pub fn match_keyword(input: Rc<str>) -> Option<_Match> {
+	pub fn match_keyword(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new(
 				r"^(and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while)\b"
 			)
 			.unwrap();
 		}
-		PATTERN
-			.find(&*input)
-			.map(|m| _Match::new(Rc::clone(&input), m))
+		PATTERN.find(input)
 	}
-	pub fn match_ident(input: Rc<str>) -> Option<_Match> {
+	pub fn match_ident(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new("^([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
 		}
-		PATTERN
-			.find(&*input)
-			.map(|m| _Match::new(Rc::clone(&input), m))
+		PATTERN.find(input)
 	}
-	pub fn match_brace(input: Rc<str>) -> Option<_Match> {
+	pub fn match_brace(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new(r"^([(){}])").unwrap();
 		}
-		PATTERN
-			.find(&*input)
-			.map(|m| _Match::new(Rc::clone(&input), m))
+		PATTERN.find(input)
 	}
-	pub fn match_punct(input: Rc<str>) -> Option<_Match> {
+	pub fn match_punct(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new("^([,.;])").unwrap();
 		}
-		PATTERN
-			.find(&*input)
-			.map(|m| _Match::new(Rc::clone(&input), m))
+		PATTERN.find(input)
 	}
-	pub fn match_operator(input: Rc<str>) -> Option<_Match> {
+	pub fn match_operator(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new(r"^([=!<>]=?|[-+*/])").unwrap();
 		}
-		PATTERN
-			.find(&*input)
-			.map(|m| _Match::new(Rc::clone(&input), m))
+		PATTERN.find(input)
 	}
-	pub fn match_num_lit(input: Rc<str>) -> Option<_Match> {
+	pub fn match_num_lit(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new("^([0-9]+)").unwrap();
 		}
-		PATTERN
-			.find(&*input)
-			.map(|m| _Match::new(Rc::clone(&input), m))
+		PATTERN.find(input)
 	}
-	pub fn match_str_lit(input: Rc<str>) -> Option<_Match> {
+	pub fn match_str_lit(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new(r#"^("[^"]*")"#).unwrap();
 		}
-		PATTERN
-			.find(&*input)
-			.map(|m| _Match::new(Rc::clone(&input), m))
+		PATTERN.find(input)
 	}
 }
 
 #[macro_export]
 macro_rules! brace {
 	($lexeme:literal) => {
-		Token::brace($lexeme, ::gramatika::Span::default())
+		Token::brace($lexeme.into(), ::gramatika::Span::default())
 	};
 	($lexeme:tt) => {
-		Token::brace(stringify!($lexeme), ::gramatika::Span::default())
+		Token::brace(stringify!($lexeme).into(), ::gramatika::Span::default())
 	};
 }
 #[macro_export]
 macro_rules! ident {
 	($lexeme:literal) => {
-		Token::ident($lexeme, ::gramatika::Span::default())
+		Token::ident($lexeme.into(), ::gramatika::Span::default())
 	};
 	($lexeme:tt) => {
-		Token::ident(stringify!($lexeme), ::gramatika::Span::default())
+		Token::ident(stringify!($lexeme).into(), ::gramatika::Span::default())
 	};
 }
 #[macro_export]
 macro_rules! keyword {
 	($lexeme:literal) => {
-		Token::keyword($lexeme, ::gramatika::Span::default())
+		Token::keyword($lexeme.into(), ::gramatika::Span::default())
 	};
 	($lexeme:tt) => {
-		Token::keyword(stringify!($lexeme), ::gramatika::Span::default())
+		Token::keyword(stringify!($lexeme).into(), ::gramatika::Span::default())
 	};
 }
 #[macro_export]
 macro_rules! num_lit {
 	($lexeme:literal) => {
-		Token::num_lit($lexeme, ::gramatika::Span::default())
+		Token::num_lit($lexeme.into(), ::gramatika::Span::default())
 	};
 	($lexeme:tt) => {
-		Token::num_lit(stringify!($lexeme), ::gramatika::Span::default())
+		Token::num_lit(stringify!($lexeme).into(), ::gramatika::Span::default())
 	};
 }
 #[macro_export]
 macro_rules! str_lit {
 	($lexeme:literal) => {
-		Token::str_lit($lexeme, ::gramatika::Span::default())
+		Token::str_lit($lexeme.into(), ::gramatika::Span::default())
 	};
 	($lexeme:tt) => {
-		Token::str_lit(stringify!($lexeme), ::gramatika::Span::default())
+		Token::str_lit(stringify!($lexeme).into(), ::gramatika::Span::default())
 	};
 }
 #[macro_export]
 macro_rules! operator {
 	($lexeme:literal) => {
-		Token::operator($lexeme, ::gramatika::Span::default())
+		Token::operator($lexeme.into(), ::gramatika::Span::default())
 	};
 	($lexeme:tt) => {
-		Token::operator(stringify!($lexeme), ::gramatika::Span::default())
+		Token::operator(stringify!($lexeme).into(), ::gramatika::Span::default())
 	};
 }
 #[macro_export]
 macro_rules! punct {
 	($lexeme:literal) => {
-		Token::punct($lexeme, ::gramatika::Span::default())
+		Token::punct($lexeme.into(), ::gramatika::Span::default())
 	};
 	($lexeme:tt) => {
-		Token::punct(stringify!($lexeme), ::gramatika::Span::default())
+		Token::punct(stringify!($lexeme).into(), ::gramatika::Span::default())
 	};
 }
 pub use {brace, ident, keyword, num_lit, operator, punct, str_lit};
@@ -217,13 +197,13 @@ impl Clone for Token {
 		use Token::*;
 
 		match self {
-			Keyword(lexeme, span) => Keyword(Rc::clone(lexeme), *span),
-			Ident(lexeme, span) => Ident(Rc::clone(lexeme), *span),
-			Brace(lexeme, span) => Brace(Rc::clone(lexeme), *span),
-			Punct(lexeme, span) => Punct(Rc::clone(lexeme), *span),
-			Operator(lexeme, span) => Operator(Rc::clone(lexeme), *span),
-			NumLit(lexeme, span) => NumLit(Rc::clone(lexeme), *span),
-			StrLit(lexeme, span) => StrLit(Rc::clone(lexeme), *span),
+			Keyword(lexeme, span) => Keyword(lexeme.clone(), *span),
+			Ident(lexeme, span) => Ident(lexeme.clone(), *span),
+			Brace(lexeme, span) => Brace(lexeme.clone(), *span),
+			Punct(lexeme, span) => Punct(lexeme.clone(), *span),
+			Operator(lexeme, span) => Operator(lexeme.clone(), *span),
+			NumLit(lexeme, span) => NumLit(lexeme.clone(), *span),
+			StrLit(lexeme, span) => StrLit(lexeme.clone(), *span),
 		}
 	}
 }
@@ -231,7 +211,7 @@ impl Clone for Token {
 impl gramatika::Token for Token {
 	type Kind = TokenKind;
 
-	fn lexeme(&self) -> &str {
+	fn lexeme(&self) -> Substr {
 		self.as_inner().0
 	}
 

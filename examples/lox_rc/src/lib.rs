@@ -17,7 +17,7 @@ use stmt::Program;
 
 pub use lexer::Lexer;
 
-pub fn parse(input: String) -> gramatika::Result<'static, Program> {
+pub fn parse(input: String) -> gramatika::Result<Program> {
 	ParseStream::from(input).parse()
 }
 

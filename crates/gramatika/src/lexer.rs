@@ -1,23 +1,21 @@
 use std::fmt;
 
-use crate::Span;
+use arcstr::{ArcStr, Substr};
 
 pub trait Lexer {
-	type Input;
 	type Output: Token;
 
-	fn new(input: Self::Input) -> Self;
-	fn source(&self) -> Self::Input;
+	fn new(input: ArcStr) -> Self;
+	fn source(&self) -> ArcStr;
 	fn scan(&mut self) -> Vec<Self::Output>;
 	fn scan_token(&mut self) -> Option<Self::Output>;
 }
 
-pub trait Token {
+pub trait Token
+where Self: Clone
+{
 	type Kind: fmt::Debug + PartialEq;
 
-	fn lexeme(&self) -> &str;
+	fn lexeme(&self) -> Substr;
 	fn kind(&self) -> Self::Kind;
 }
-
-#[allow(type_alias_bounds)]
-pub type TokenCtor<'a, T: Token> = fn(&'a str, Span) -> T;

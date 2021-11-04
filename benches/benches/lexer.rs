@@ -30,10 +30,10 @@ pub fn lexer(c: &mut Criterion) {
 	];
 
 	for (key, program) in programs {
-		let name = BenchmarkId::new("&'a str", key);
-		group.bench_with_input(name, program, move |b, input| {
-			b.iter_with_large_drop(|| lox::Lexer::new(input).scan())
-		});
+		// let name = BenchmarkId::new("&'a str", key);
+		// group.bench_with_input(name, program, move |b, input| {
+		// 	b.iter_with_large_drop(|| lox::Lexer::new(input).scan())
+		// });
 
 		let name = BenchmarkId::new("Rc<str>", key);
 		group.bench_with_input(name, program, move |b, input| {

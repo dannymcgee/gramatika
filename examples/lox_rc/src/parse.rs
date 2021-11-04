@@ -1,5 +1,4 @@
-use std::rc::Rc;
-
+use arcstr::ArcStr;
 use gramatika::{
 	Lexer as _, ParseStreamer, Result, Spanned, SpannedError, Token as _, TokenCtor,
 };
@@ -10,7 +9,7 @@ use crate::{
 };
 
 pub struct ParseStream {
-	input: Rc<str>,
+	input: ArcStr,
 	lexer: Lexer,
 	peek: Option<Token>,
 	tokens: Vec<Token>,
@@ -26,22 +25,23 @@ impl ParseStream {
 		}
 	}
 
-	pub fn source(&self) -> &'static str {
-		let src = &*self.input;
-		unsafe { std::mem::transmute(src) }
+	pub fn source(&self) -> ArcStr {
+		ArcStr::clone(&self.input)
 	}
 
-	pub fn into_inner(self) -> (Rc<str>, Vec<Token>) {
+	pub fn into_inner(self) -> (ArcStr, Vec<Token>) {
 		(self.input, self.tokens)
 	}
 
 	fn upcast(token: Token, convert: TokenCtor<Token>) -> Token {
-		let (lexeme, span) = token.as_inner();
-		convert(unsafe { std::mem::transmute(lexeme) }, span)
+		let lexeme = token.lexeme();
+		let span = token.span();
+
+		convert(lexeme, span)
 	}
 }
 
-impl<'a> ParseStreamer<'a> for ParseStream {
+impl ParseStreamer for ParseStream {
 	type Token = Token;
 
 	fn is_empty(&mut self) -> bool {
@@ -78,14 +78,14 @@ impl<'a> ParseStreamer<'a> for ParseStream {
 		})
 	}
 
-	fn consume(&mut self, compare: Token) -> Result<'a, Token> {
+	fn consume(&mut self, compare: Token) -> Result<Token> {
 		self.next()
 			.map(|token| {
 				if token.kind() == compare.kind() && token.lexeme() == compare.lexeme() {
 					Ok(token)
 				} else {
 					Err(SpannedError {
-						message: format!("Expected `{}`", compare.lexeme()),
+						message: std::format!("Expected `{}`", compare.lexeme()),
 						source: self.source(),
 						span: Some(token.span()),
 					})
@@ -100,14 +100,18 @@ impl<'a> ParseStreamer<'a> for ParseStream {
 			})
 	}
 
-	fn consume_kind(&mut self, kind: TokenKind) -> Result<'a, Token> {
+	fn consume_kind(&mut self, kind: TokenKind) -> Result<Token> {
 		self.next()
 			.map(|token| {
 				if token.kind() == kind {
 					Ok(token)
 				} else {
 					Err(SpannedError {
-						message: format!("Expected {:?}, found {:?}", kind, token.kind()),
+						message: std::format!(
+							"Expected {:?}, found {:?}",
+							kind,
+							token.kind()
+						),
 						source: self.source(),
 						span: Some(token.span()),
 					})
@@ -125,8 +129,8 @@ impl<'a> ParseStreamer<'a> for ParseStream {
 	fn consume_as(
 		&mut self,
 		kind: TokenKind,
-		convert: TokenCtor<'a, Token>,
-	) -> Result<'a, Token> {
+		convert: TokenCtor<Token>,
+	) -> Result<Token> {
 		self.next()
 			.and_then(|_| {
 				let token = self.tokens.pop()?;
@@ -137,7 +141,7 @@ impl<'a> ParseStreamer<'a> for ParseStream {
 					Some(Ok(converted))
 				} else {
 					Some(Err(SpannedError {
-						message: format!("Expected {:?}", kind),
+						message: std::format!("Expected {:?}", kind),
 						source: self.source(),
 						span: Some(token.span()),
 					}))
@@ -155,8 +159,8 @@ impl<'a> ParseStreamer<'a> for ParseStream {
 	fn upgrade_last(
 		&mut self,
 		kind: TokenKind,
-		convert: TokenCtor<'a, Token>,
-	) -> Result<'a, Token> {
+		convert: TokenCtor<Token>,
+	) -> Result<Token> {
 		self.tokens
 			.pop()
 			.map(|token| {
@@ -167,7 +171,7 @@ impl<'a> ParseStreamer<'a> for ParseStream {
 					Ok(converted)
 				} else {
 					Err(SpannedError {
-						message: format!("Expected {:?}", kind),
+						message: std::format!("Expected {:?}", kind),
 						source: self.source(),
 						span: Some(token.span()),
 					})
@@ -182,11 +186,7 @@ impl<'a> ParseStreamer<'a> for ParseStream {
 			})
 	}
 
-	fn upgrade(
-		&mut self,
-		token: Token,
-		convert: TokenCtor<'a, Token>,
-	) -> Result<'a, Token> {
+	fn upgrade(&mut self, token: Token, convert: TokenCtor<Token>) -> Result<Token> {
 		let found = self
 			.tokens
 			.iter_mut()
@@ -226,11 +226,11 @@ impl From<Lexer> for ParseStream {
 }
 
 impl<S> From<S> for ParseStream
-where S: Into<Rc<str>>
+where S: Into<ArcStr>
 {
 	fn from(input: S) -> Self {
-		let input: Rc<str> = input.into();
-		let lexer = Lexer::new(Rc::clone(&input));
+		let input = input.into();
+		let lexer = Lexer::new(ArcStr::clone(&input));
 
 		Self {
 			input,

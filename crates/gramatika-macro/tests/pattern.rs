@@ -4,31 +4,31 @@ extern crate gramatika_macro;
 #[macro_use]
 extern crate gramatika;
 
-use gramatika::Span;
+use gramatika::{Span, Substr};
 
 #[allow(dead_code)]
 #[derive(Debug, Token)]
-enum Token<'a> {
+enum Token {
 	#[pattern = "let|var|if|else|elsif|for|while|return"]
-	Keyword(&'a str, Span),
+	Keyword(Substr, Span),
 
 	#[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
-	Ident(&'a str, Span),
+	Ident(Substr, Span),
 
 	#[pattern = r"[;:{}()\[\]]"]
-	Punct(&'a str, Span),
+	Punct(Substr, Span),
 
 	#[pattern = "[=!<>]=?"]
 	#[pattern = "[-+*/]"]
-	Operator(&'a str, Span),
+	Operator(Substr, Span),
 
 	#[pattern = "[0-9]+"]
-	Literal(&'a str, Span),
+	Literal(Substr, Span),
 
 	#[pattern = r#""[^"]*""#]
-	StrLiteral(&'a str, Span),
+	StrLiteral(Substr, Span),
 
-	NoPattern(&'a str, Span),
+	NoPattern(Substr, Span),
 }
 
 fn main() {

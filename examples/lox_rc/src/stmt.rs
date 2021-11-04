@@ -57,10 +57,10 @@ pub struct WhileStmt {
 	pub body: Box<Stmt>,
 }
 
-impl<'a> Parse<'a> for Program {
+impl Parse for Program {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let mut stmts = vec![];
 		while !input.is_empty() {
 			stmts.push(input.parse::<Stmt>()?);
@@ -70,10 +70,10 @@ impl<'a> Parse<'a> for Program {
 	}
 }
 
-impl<'a> Parse<'a> for Stmt {
+impl Parse for Stmt {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		use Token::*;
 
 		match input.peek() {
@@ -124,10 +124,10 @@ impl<'a> Parse<'a> for Stmt {
 	}
 }
 
-impl<'a> Parse<'a> for ForStmt {
+impl Parse for ForStmt {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![for])?;
 
 		input.consume(brace!["("])?;
@@ -166,10 +166,10 @@ impl<'a> Parse<'a> for ForStmt {
 	}
 }
 
-impl<'a> Parse<'a> for IfStmt {
+impl Parse for IfStmt {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![if])?;
 
 		input.consume(brace!["("])?;
@@ -194,10 +194,10 @@ impl<'a> Parse<'a> for IfStmt {
 	}
 }
 
-impl<'a> Parse<'a> for PrintStmt {
+impl Parse for PrintStmt {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![print])?;
 		let value = input.parse::<Expr>()?;
 
@@ -207,10 +207,10 @@ impl<'a> Parse<'a> for PrintStmt {
 	}
 }
 
-impl<'a> Parse<'a> for ReturnStmt {
+impl Parse for ReturnStmt {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![return])?;
 		let value = if input.check(punct![;]) {
 			None
@@ -224,10 +224,10 @@ impl<'a> Parse<'a> for ReturnStmt {
 	}
 }
 
-impl<'a> Parse<'a> for WhileStmt {
+impl Parse for WhileStmt {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![while])?;
 
 		input.consume(brace!["("])?;

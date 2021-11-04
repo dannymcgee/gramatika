@@ -11,7 +11,6 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let ident = &ast.ident;
 	let kind_ident = format_ident!("{}Kind", ident);
 	let generics = &ast.generics;
-	let lifetime = common::lifetime(generics);
 
 	let (variant_ident, variant_pattern, variant_fields) = match &ast.data {
 		Data::Enum(DataEnum { variants, .. }) => common::expand_variants(variants),
@@ -58,9 +57,9 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		}
 
 		impl#generics #ident#generics {
-			pub fn as_inner(&#lifetime self) -> (&#lifetime str, ::gramatika::Span) {
+			pub fn as_inner(&self) -> (::gramatika::Substr, ::gramatika::Span) {
 				match self {#(
-					Self::#variant_ident(lexeme, span) => (*lexeme, *span)
+					Self::#variant_ident(lexeme, span) => (lexeme.clone(), *span)
 				),*}
 			}
 
@@ -69,8 +68,8 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			})*
 
 			#(pub fn #matcher_ident(
-				input: &#lifetime str
-			) -> ::std::option::Option<::gramatika::Match<#lifetime>> {
+				input: &str
+			) -> ::std::option::Option<::gramatika::Match> {
 				lazy_static! {
 					static ref __VARIANT_PATTERN: ::gramatika::Regex =
 						::gramatika::Regex::new(#variant_pattern).unwrap();
@@ -83,10 +82,16 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			#[macro_export]
 			macro_rules! #ctor_ident {
 				($lexeme:literal) => {
-					#ident::#ctor_ident($lexeme, ::gramatika::Span::default())
+					#ident::#ctor_ident(
+						::gramatika::arcstr::literal!($lexeme).substr(..),
+						::gramatika::Span::default()
+					)
 				};
 				($lexeme:tt) => {
-					#ident::#ctor_ident(stringify!($lexeme), ::gramatika::Span::default())
+					#ident::#ctor_ident(
+						::gramatika::arcstr::literal!(stringify!($lexeme)).substr(..),
+						::gramatika::Span::default()
+					)
 				};
 			}
 		)*
@@ -94,21 +99,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		impl#generics ::gramatika::Token for #ident#generics {
 			type Kind = #kind_ident;
 
-			fn lexeme(&self) -> &str {
-				self.as_inner().0
-			}
-
-			fn kind(&self) -> #kind_ident {
-				match self {
-					#(#ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
-				}
-			}
-		}
-
-		impl#generics ::gramatika::Token for &#lifetime #ident#generics {
-			type Kind = #kind_ident;
-
-			fn lexeme(&self) -> &str {
+			fn lexeme(&self) -> ::gramatika::Substr {
 				self.as_inner().0
 			}
 
@@ -124,6 +115,14 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				self.as_inner().1
 			}
 		}
+
+		impl#generics Clone for #ident#generics {
+			fn clone(&self) -> Self {
+				match self {#(
+					#ident::#variant_ident(lexeme, span) => #ident::#variant_ident(lexeme.clone(), *span)
+				),*}
+			}
+		}
 	};
 
 	result.into()
@@ -135,9 +134,9 @@ fn enum_field_type_to_param_name(ty: &Type) -> pm2::Ident {
 			let type_name = &path.path.segments.iter().last().unwrap().ident;
 
 			match &type_name.to_string()[..] {
-				"str" | "String" => format_ident!("lexeme"),
+				"Substr" => format_ident!("lexeme"),
 				"Span" => format_ident!("span"),
-				_ => panic!("Unsupported token field type: `{:?}`", ty),
+				_ => panic!("Unsupported token field type: `{}`", type_name),
 			}
 		}
 		Type::Reference(ty) => enum_field_type_to_param_name(&ty.elem),

@@ -75,39 +75,39 @@ pub struct UnaryExpr {
 	pub rhs: Box<Expr>,
 }
 
-trait RecursiveDescent<'a> {
+trait RecursiveDescent {
 	type Token: gramatika::Token;
 
-	fn assignment(&mut self) -> Result<'a, Expr>;
-	fn or(&mut self) -> Result<'a, Expr>;
-	fn and(&mut self) -> Result<'a, Expr>;
-	fn equality(&mut self) -> Result<'a, Expr>;
-	fn comparison(&mut self) -> Result<'a, Expr>;
-	fn term(&mut self) -> Result<'a, Expr>;
-	fn factor(&mut self) -> Result<'a, Expr>;
-	fn unary(&mut self) -> Result<'a, Expr>;
-	fn call(&mut self) -> Result<'a, Expr>;
-	fn finish_call(&mut self, callee: Expr) -> Result<'a, Expr>;
-	fn primary(&mut self) -> Result<'a, Expr>;
+	fn assignment(&mut self) -> Result<Expr>;
+	fn or(&mut self) -> Result<Expr>;
+	fn and(&mut self) -> Result<Expr>;
+	fn equality(&mut self) -> Result<Expr>;
+	fn comparison(&mut self) -> Result<Expr>;
+	fn term(&mut self) -> Result<Expr>;
+	fn factor(&mut self) -> Result<Expr>;
+	fn unary(&mut self) -> Result<Expr>;
+	fn call(&mut self) -> Result<Expr>;
+	fn finish_call(&mut self, callee: Expr) -> Result<Expr>;
+	fn primary(&mut self) -> Result<Expr>;
 	fn binary(
 		&mut self,
 		operators: &[Self::Token],
-		operand_method: fn(&mut Self) -> Result<'a, Expr>,
-	) -> Result<'a, Expr>;
+		operand_method: fn(&mut Self) -> Result<Expr>,
+	) -> Result<Expr>;
 }
 
-impl<'a> Parse<'a> for Expr {
+impl Parse for Expr {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		input.assignment()
 	}
 }
 
-impl<'a> Parse<'a> for FunExpr {
+impl Parse for FunExpr {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		input.consume(brace!["("])?;
 
 		let mut params = vec![];
@@ -132,10 +132,10 @@ impl<'a> Parse<'a> for FunExpr {
 	}
 }
 
-impl<'a> RecursiveDescent<'a> for ParseStream {
+impl RecursiveDescent for ParseStream {
 	type Token = Token;
 
-	fn assignment(&mut self) -> Result<'a, Expr> {
+	fn assignment(&mut self) -> Result<Expr> {
 		let expr = self.or()?;
 
 		if self.check(operator![=]) {
@@ -164,7 +164,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream {
 		}
 	}
 
-	fn or(&mut self) -> Result<'a, Expr> {
+	fn or(&mut self) -> Result<Expr> {
 		let mut expr = self.and()?;
 
 		while self.check(keyword![or]) {
@@ -181,7 +181,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream {
 		Ok(expr)
 	}
 
-	fn and(&mut self) -> Result<'a, Expr> {
+	fn and(&mut self) -> Result<Expr> {
 		let mut expr = self.equality()?;
 
 		while self.check(keyword![and]) {
@@ -198,26 +198,26 @@ impl<'a> RecursiveDescent<'a> for ParseStream {
 		Ok(expr)
 	}
 
-	fn equality(&mut self) -> Result<'a, Expr> {
+	fn equality(&mut self) -> Result<Expr> {
 		self.binary(&[operator![==], operator![!=]], Self::comparison)
 	}
 
-	fn comparison(&mut self) -> Result<'a, Expr> {
+	fn comparison(&mut self) -> Result<Expr> {
 		self.binary(
 			&[operator![>], operator![>=], operator![<], operator![<=]],
 			Self::term,
 		)
 	}
 
-	fn term(&mut self) -> Result<'a, Expr> {
+	fn term(&mut self) -> Result<Expr> {
 		self.binary(&[operator!["-"], operator![+]], Self::factor)
 	}
 
-	fn factor(&mut self) -> Result<'a, Expr> {
+	fn factor(&mut self) -> Result<Expr> {
 		self.binary(&[operator![/], operator![*]], Self::unary)
 	}
 
-	fn unary(&mut self) -> Result<'a, Expr> {
+	fn unary(&mut self) -> Result<Expr> {
 		if self.check(operator![!]) || self.check(operator!["-"]) {
 			let op = self.consume_kind(TokenKind::Operator)?;
 			let rhs = self.unary()?;
@@ -231,7 +231,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream {
 		}
 	}
 
-	fn call(&mut self) -> Result<'a, Expr> {
+	fn call(&mut self) -> Result<Expr> {
 		use Token::*;
 
 		let mut expr = self.primary()?;
@@ -258,7 +258,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream {
 		Ok(expr)
 	}
 
-	fn finish_call(&mut self, callee: Expr) -> Result<'a, Expr> {
+	fn finish_call(&mut self, callee: Expr) -> Result<Expr> {
 		let mut args = vec![];
 		while !self.is_empty() && !self.check(brace![")"]) {
 			if !args.is_empty() {
@@ -275,7 +275,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream {
 		}))
 	}
 
-	fn primary(&mut self) -> Result<'a, Expr> {
+	fn primary(&mut self) -> Result<Expr> {
 		use Token::*;
 
 		match self.next() {
@@ -319,8 +319,8 @@ impl<'a> RecursiveDescent<'a> for ParseStream {
 	fn binary(
 		&mut self,
 		operators: &[Self::Token],
-		operand_method: fn(&mut Self) -> Result<'a, Expr>,
-	) -> Result<'a, Expr> {
+		operand_method: fn(&mut Self) -> Result<Expr>,
+	) -> Result<Expr> {
 		let mut expr = operand_method(self)?;
 
 		while operators.iter().any(|op| self.check(op.clone())) {

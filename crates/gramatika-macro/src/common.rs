@@ -2,10 +2,7 @@ use convert_case::{Case, Casing};
 use itertools::Itertools;
 use proc_macro2::{Ident, Literal, TokenStream, TokenTree};
 use quote::format_ident;
-use syn::{
-	punctuated::Punctuated, token::Comma, Attribute, Fields, GenericParam, Generics,
-	LifetimeDef, Variant,
-};
+use syn::{punctuated::Punctuated, token::Comma, Attribute, Fields, Variant};
 
 use crate::common;
 
@@ -117,17 +114,6 @@ pub fn token_funcs(
 	});
 
 	(ctors.collect(), matchers.collect())
-}
-
-pub fn lifetime(generics: &Generics) -> &LifetimeDef {
-	generics
-		.params
-		.iter()
-		.find_map(|param| match param {
-			GenericParam::Lifetime(lifetime) => Some(lifetime),
-			_ => None,
-		})
-		.unwrap()
 }
 
 pub fn attr_args(attr: &Attribute) -> Option<TokenStream> {

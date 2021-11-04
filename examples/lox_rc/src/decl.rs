@@ -35,20 +35,20 @@ pub struct VariableDecl {
 	pub initializer: Option<Expr>,
 }
 
-impl<'a> Parse<'a> for Decl {
+impl Parse for Decl {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		use Token::*;
 
 		match input.next() {
-			Some(Keyword(lex, _)) if &*lex == "class" => {
+			Some(Keyword(lex, _)) if lex == "class" => {
 				Ok(Decl::Class(input.parse::<ClassDecl>()?))
 			}
-			Some(Keyword(lex, _)) if &*lex == "fun" => {
+			Some(Keyword(lex, _)) if lex == "fun" => {
 				Ok(Decl::Fun(input.parse::<FunDecl>()?))
 			}
-			Some(Keyword(lex, _)) if &*lex == "var" => {
+			Some(Keyword(lex, _)) if lex == "var" => {
 				Ok(Decl::Variable(input.parse::<VariableDecl>()?))
 			}
 			Some(other) => Err(SpannedError {
@@ -65,10 +65,10 @@ impl<'a> Parse<'a> for Decl {
 	}
 }
 
-impl<'a> Parse<'a> for ClassDecl {
+impl Parse for ClassDecl {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let superclass = if input.check(operator![<]) {
 			input.consume(operator![<])?;
@@ -94,10 +94,10 @@ impl<'a> Parse<'a> for ClassDecl {
 	}
 }
 
-impl<'a> Parse<'a> for FunDecl {
+impl Parse for FunDecl {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let func = input.parse::<FunExpr>()?;
 
@@ -105,10 +105,10 @@ impl<'a> Parse<'a> for FunDecl {
 	}
 }
 
-impl<'a> Parse<'a> for VariableDecl {
+impl Parse for VariableDecl {
 	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let initializer = if input.check(operator![=]) {
 			input.consume(operator![=])?;

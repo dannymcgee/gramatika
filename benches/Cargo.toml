@@ -6,7 +6,7 @@ edition = "2018"
 [dev-dependencies]
 criterion = "0.3"
 gramatika = { path = "../crates/gramatika" }
-lox = { path = "../examples/lox" }
+# lox = { path = "../examples/lox" }
 lox_rc = { path = "../examples/lox_rc" }
 
 [[bench]]
