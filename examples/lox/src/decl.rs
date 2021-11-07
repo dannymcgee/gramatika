@@ -1,48 +1,50 @@
-use gramatika::{Parse, ParseStreamer, Result, Spanned, SpannedError};
+use gramatika::{Parse, ParseStreamer, Result, Spanned, SpannedError, Token as _};
 
 use crate::*;
 
 #[derive(DebugLisp)]
-pub enum Decl<'a> {
-	Class(ClassDecl<'a>),
-	Fun(FunDecl<'a>),
-	Variable(VariableDecl<'a>),
+pub enum Decl {
+	Class(ClassDecl),
+	Fun(FunDecl),
+	Variable(VariableDecl),
 }
 
 #[derive(DebugLisp)]
-pub struct ClassDecl<'a> {
-	pub name: Token<'a>,
-	pub superclass: Option<Token<'a>>,
-	pub methods: Vec<FunDecl<'a>>,
+pub struct ClassDecl {
+	pub name: Token,
+	pub superclass: Option<Token>,
+	pub methods: Vec<FunDecl>,
 }
 
 #[derive(DebugLisp)]
-pub struct FunDecl<'a> {
-	pub name: Token<'a>,
-	pub func: FunExpr<'a>,
+pub struct FunDecl {
+	pub name: Token,
+	pub func: FunExpr,
 }
 
 #[derive(DebugLisp)]
-pub struct VariableDecl<'a> {
-	pub name: Token<'a>,
-	pub initializer: Option<Expr<'a>>,
+pub struct VariableDecl {
+	pub name: Token,
+	pub initializer: Option<Expr>,
 }
 
-impl<'a> Parse<'a> for Decl<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for Decl {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
-		use Token::*;
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
+		use TokenKind::*;
 
 		match input.next() {
-			Some(Keyword("class", _)) => Ok(Decl::Class(input.parse::<ClassDecl>()?)),
-			Some(Keyword("fun", _)) => Ok(Decl::Fun(input.parse::<FunDecl>()?)),
-			Some(Keyword("var", _)) => Ok(Decl::Variable(input.parse::<VariableDecl>()?)),
-			Some(other) => Err(SpannedError {
-				message: "Expected `class`, `fun`, or `var`".into(),
-				source: input.source(),
-				span: Some(other.span()),
-			}),
+			Some(token) => match token.as_matchable() {
+				(Keyword, "class", _) => Ok(Decl::Class(input.parse()?)),
+				(Keyword, "fun", _) => Ok(Decl::Fun(input.parse()?)),
+				(Keyword, "var", _) => Ok(Decl::Variable(input.parse()?)),
+				_ => Err(SpannedError {
+					message: "Expected `class`, `fun`, or `var`".into(),
+					source: input.source(),
+					span: Some(token.span()),
+				}),
+			},
 			None => Err(SpannedError {
 				message: "Unexpected end of input".into(),
 				source: input.source(),
@@ -52,10 +54,10 @@ impl<'a> Parse<'a> for Decl<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for ClassDecl<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for ClassDecl {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let superclass = if input.check(operator![<]) {
 			input.consume(operator![<])?;
@@ -81,10 +83,10 @@ impl<'a> Parse<'a> for ClassDecl<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for FunDecl<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for FunDecl {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let func = input.parse::<FunExpr>()?;
 
@@ -92,10 +94,10 @@ impl<'a> Parse<'a> for FunDecl<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for VariableDecl<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for VariableDecl {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let name = input.consume_kind(TokenKind::Ident)?;
 		let initializer = if input.check(operator![=]) {
 			input.consume(operator![=])?;

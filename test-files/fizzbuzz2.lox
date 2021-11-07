@@ -1,0 +1,34 @@
+for (var i = 0; i < 100; i = i + 1) {
+	var fizzTest = i;
+	var buzzTest = i;
+	var fizzbuzzTest = i;
+
+	var fizzbuzz = false;
+
+	while (!fizzbuzz and fizzbuzzTest >= 15) {
+		if (fizzbuzzTest / 15 == 1) {
+			fizzbuzz = true;
+			print "fizzbuzz";
+		} else {
+			fizzbuzzTest = fizzbuzzTest - 15;
+		}
+	}
+	while (!fizzbuzz and buzzTest >= 5) {
+		if (buzzTest / 5 == 1) {
+			fizzbuzz = true;
+			print "buzz";
+		} else {
+			buzzTest = buzzTest - 5;
+		}
+	}
+	while (!fizzbuzz and fizzTest >= 3) {
+		if (fizzTest / 3 == 1) {
+			fizzbuzz = true;
+			print "fizz";
+		} else {
+			fizzTest = fizzTest - 3;
+		}
+	}
+
+	if (!fizzbuzz) print i;
+}

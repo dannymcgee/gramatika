@@ -1,58 +1,44 @@
 //! NOTE: This crate only exists to debug macros.
 //! Run `cargo expand -p expand` to check the output of the macros used here.
 
-use gramatika::Span;
-
 #[macro_use]
 extern crate gramatika;
 
-#[allow(dead_code)]
-#[derive(Clone, Copy, DebugLispToken, PartialEq, Token, Lexer)]
-pub enum Token<'a> {
-	#[pattern = r"\[\[?|\]\]?|[(){}]"]
-	Brace(&'a str, Span),
+use gramatika::{Lexer as _, Span, Substr};
 
-	#[pattern = r"/{2}.*"]
-	Comment(&'a str, Span),
+#[derive(Debug, Token, Lexer, PartialEq)]
+enum Token {
+	#[subset_of(Ident)]
+	#[pattern = "and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while"]
+	Keyword(Substr, Span),
 
-	#[pattern = r"(array|atomic|bool|[fiu]32|mat[2-4]x[2-4]|ptr|sampler(_comparison)?|vec[2-4])\b"]
-	#[pattern = r"(texture_multisampled_2d)\b"]
-	#[pattern = r"(texture_external)\b"]
-	#[pattern = r"(texture_depth_(2d|cube)(_array)?)\b"]
-	#[pattern = r"(texture_(1d|2d(_array)?|3d|cube(_array)?))\b"]
-	#[pattern = r"(texture_storage_(1d|2d(_array)?|3d))\b"]
-	Type(&'a str, Span),
+	#[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	Ident(Substr, Span),
 
-	#[pattern = r"(fn|let|struct|type|var|export)\b"]
-	#[pattern = r"(function|private|read(_write)?|storage|uniform|workgroup|write)\b"]
-	#[pattern = r"(break|case|continu(e|ing)|default|else(if)?|fallthrough|for|if|loop|return|switch|from)\b"]
-	#[pattern = r"(true|false)\b"]
-	#[pattern = r"(bitcast|discard|enable|import)\b"]
-	Keyword(&'a str, Span),
+	#[pattern = r"[;:{}()\[\]]"]
+	Punct(Substr, Span),
 
-	#[pattern = "[a-zA-Z][0-9a-zA-Z_]*"]
-	Ident(&'a str, Span),
+	#[pattern = "[-+*/=]"]
+	Operator(Substr, Span),
 
-	#[pattern = "->"]
-	#[pattern = r"&&?|\|\|?|--?|\+\+?|>>|<<"]
-	#[pattern = "[=!<>]=?"]
-	#[pattern = "[%*/~^]"]
-	Operator(&'a str, Span),
-
-	#[pattern = r"::?|[,.;]"]
-	Punct(&'a str, Span),
-
-	#[pattern = r"-?[0-9]*\.[0-9]+"]
-	#[pattern = r"-?[0-9]+\.[0-9]*"]
-	#[pattern = "[eE][-+]?[0-9]+"]
-	#[pattern = r"-?0x[0-9a-fA-F]*\.?[0-9a-fA-F]+"]
-	#[pattern = r"-?0x[0-9a-fA-F]+\.?[0-9a-fA-F]*"]
-	#[pattern = "[pP][-+]?[0-9]+"]
-	Literal(&'a str, Span),
-
-	NoPattern1(&'a str, Span),
-	NoPattern2(&'a str, Span),
-	NoPattern3(&'a str, Span),
+	#[pattern = "[0-9]+"]
+	Literal(Substr, Span),
 }
 
-fn main() {}
+fn main() {
+	let input = "let foo = 2 + 2;";
+	let mut lexer = Lexer::new(input.into());
+	let tokens = lexer.scan();
+
+	let expected = vec![
+		Token::keyword("let".into(), span![0:0...0:3]),
+		Token::ident("foo".into(), span![0:4...0:7]),
+		Token::operator("=".into(), span![0:8...0:9]),
+		Token::literal("2".into(), span![0:10...0:11]),
+		Token::operator("+".into(), span![0:12...0:13]),
+		Token::literal("2".into(), span![0:14...0:15]),
+		Token::punct(";".into(), span![0:15...0:16]),
+	];
+
+	assert_eq!(tokens, expected);
+}

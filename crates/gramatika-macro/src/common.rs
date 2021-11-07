@@ -1,142 +1,86 @@
 use convert_case::{Case, Casing};
-use itertools::Itertools;
-use proc_macro2::{Ident, Literal, TokenStream, TokenTree};
+use proc_macro2::{self as pm2, Ident};
 use quote::format_ident;
-use syn::{
-	punctuated::Punctuated, token::Comma, Attribute, Fields, GenericParam, Generics,
-	LifetimeDef, Variant,
-};
+use syn::{punctuated::Punctuated, token::Comma, Fields, Variant};
 
-use crate::common;
+use crate::regex;
 
-pub fn expand_variants(
-	variants: &Punctuated<Variant, Comma>,
-) -> (Vec<Ident>, Vec<Literal>, Vec<Fields>) {
-	variants.iter().cloned().fold(
-		(vec![], vec![], vec![]),
-		|(mut idents, mut patterns, mut fields), variant| {
-			idents.push(variant.ident);
-			fields.push(variant.fields);
-
-			let pat_literals = variant
-				.attrs
-				.iter()
-				.filter_map(|attr| {
-					let ident = attr.path.get_ident();
-					if ident.is_some() && *ident.unwrap() == "pattern" {
-						attr.tokens.clone().into_iter().find_map(|tt| match tt {
-							TokenTree::Literal(lit) => Some(lit),
-							_ => None,
-						})
-					} else {
-						None
-					}
-				})
-				.collect::<Vec<_>>();
-
-			if pat_literals.len() == 1 {
-				patterns.push(transform_regex(pat_literals.into_iter().last().unwrap()));
-			} else if !pat_literals.is_empty() {
-				let combined = pat_literals
-					.iter()
-					.map(|lit| {
-						let inner = common::regex_literal(lit);
-						format!("^({})", inner)
-					})
-					.join("|");
-				let pattern =
-					syn::parse_str::<Literal>(&format!("r#\"{}\"#", combined)).unwrap();
-
-				patterns.push(pattern);
-			}
-
-			(idents, patterns, fields)
-		},
-	)
+#[derive(Debug, Default)]
+pub struct TokenMeta {
+	pub idents: Vec<Ident>,
+	pub regex_match_impls: Vec<pm2::TokenStream>,
+	pub fields: Vec<Fields>,
 }
 
-fn transform_regex(lit: Literal) -> Literal {
-	let inner = regex_literal(&lit);
-	if inner.starts_with('^') {
-		lit
-	} else {
-		let pattern = format!("r#\"^({})\"#", inner);
-		syn::parse_str::<Literal>(&pattern).unwrap()
-	}
+pub struct VariantIdents {
+	pub ctor: Ident,
+	pub pattern: Ident,
+	pub get_pattern: Ident,
+	pub match_: Ident,
 }
 
-pub fn regex_literal(lit: &Literal) -> String {
-	let source = lit.to_string();
+impl VariantIdents {
+	pub fn new(variant: &Ident) -> Self {
+		let ident = variant.to_string();
+		let snake = ident.to_case(Case::Snake);
+		let screaming = ident.to_case(Case::ScreamingSnake);
 
-	let mut front_offset = 0;
-	let mut back_offset = 0;
+		let ctor =
+			if matches!(
+				snake.as_str(),
+				"as" | "auto"
+					| "box" | "break" | "self"
+					| "catch" | "const" | "continue"
+					| "crate" | "default"
+					| "do" | "dyn" | "else"
+					| "enum" | "extern" | "fn"
+					| "for" | "if" | "impl"
+					| "in" | "let" | "loop"
+					| "macro" | "match" | "mod"
+					| "move" | "mut" | "pub"
+					| "ref" | "return" | "static"
+					| "struct" | "super" | "trait"
+					| "type" | "union" | "unsafe"
+					| "use" | "where" | "while"
+					| "yield"
+			) {
+				format_ident!("{}_", snake)
+			} else {
+				format_ident!("{}", snake)
+			};
 
-	for c in source.chars() {
-		match c {
-			'r' => {
-				front_offset += 1;
-			}
-			'#' => {
-				front_offset += 1;
-				back_offset += 1;
-			}
-			'"' => {
-				front_offset += 1;
-				back_offset += 1;
-				break;
-			}
-			_ => break,
+		let pattern = format_ident!("{}_PATTERN", screaming);
+		let get_pattern = format_ident!("{}_pattern", snake);
+		let match_ = format_ident!("match_{}", snake);
+
+		Self {
+			ctor,
+			pattern,
+			get_pattern,
+			match_,
 		}
 	}
-
-	let inner = &source[front_offset..source.len() - back_offset];
-
-	inner.into()
 }
 
-pub fn token_funcs(
-	variant_idents: &[Ident],
-	variant_patterns: &[Literal],
-) -> (Vec<Ident>, Vec<Ident>) {
-	let snakes = variant_idents
+pub fn expand_variants(variants: &Punctuated<Variant, Comma>) -> TokenMeta {
+	variants
+		.iter()
+		.cloned()
+		.fold(TokenMeta::default(), |mut meta, variant| {
+			meta.regex_match_impls.push(regex::impls(&variant));
+			meta.idents.push(variant.ident);
+			meta.fields.push(variant.fields);
+
+			meta
+		})
+}
+
+pub fn token_funcs(variant_idents: &[Ident]) -> (Vec<Ident>, Vec<Ident>) {
+	variant_idents
 		.iter()
 		.map(|ident| {
-			// FIXME: Need a more robust solution for keyword collisions
-			match &ident.to_string()[..] {
-				"Type" => "ty".into(),
-				"Struct" => "structure".into(),
-				other => other.to_string().to_case(Case::Snake),
-			}
+			let VariantIdents { ctor, match_, .. } = VariantIdents::new(ident);
+			(ctor, match_)
 		})
-		.collect::<Vec<_>>();
-
-	let ctors = snakes.iter().map(|snake| format_ident!("{}", snake));
-	let matchers = variant_patterns.iter().enumerate().map(|(idx, _)| {
-		let snake = &snakes[idx];
-		format_ident!("match_{}", snake)
-	});
-
-	(ctors.collect(), matchers.collect())
-}
-
-pub fn lifetime(generics: &Generics) -> &LifetimeDef {
-	generics
-		.params
-		.iter()
-		.find_map(|param| match param {
-			GenericParam::Lifetime(lifetime) => Some(lifetime),
-			_ => None,
-		})
-		.unwrap()
-}
-
-pub fn attr_args(attr: &Attribute) -> Option<TokenStream> {
-	attr.tokens
-		.to_owned()
-		.into_iter()
-		.next()
-		.and_then(|tt| match tt {
-			TokenTree::Group(group) => Some(group.stream()),
-			_ => None,
-		})
+		.unzip()
 }

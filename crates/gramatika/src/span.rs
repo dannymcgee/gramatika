@@ -2,12 +2,22 @@ use std::{cmp::Ordering, fmt};
 
 use crate::DebugLisp;
 
+/// A simple representation of the location of some substring within a larger string.
+/// Primarily used by [`SpannedError`] to provide user-friendly error formatting.
+///
+/// [`SpannedError`]: crate::error::SpannedError
 #[derive(Clone, Copy, Default, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct Span {
 	pub start: Position,
 	pub end: Position,
 }
 
+/// Represents a cursor position within a string. Line and character offsets are
+/// zero-indexed in the internal representation, but lines will be printed as 1-indexed by
+/// [`SpannedError`] for consistency with IDEs. Character offsets are relative to the
+/// current line.
+///
+/// [`SpannedError`]: crate::error::SpannedError
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Position {
 	pub line: usize,

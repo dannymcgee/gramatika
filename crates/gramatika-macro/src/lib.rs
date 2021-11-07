@@ -3,10 +3,10 @@ use proc_macro::TokenStream;
 mod common;
 mod debug_lisp;
 mod lexer;
-mod parse;
+mod regex;
 mod token;
 
-#[proc_macro_derive(Token, attributes(pattern))]
+#[proc_macro_derive(Token, attributes(pattern, subset_of))]
 pub fn derive_token(input: TokenStream) -> TokenStream {
 	token::derive(input)
 }
@@ -14,11 +14,6 @@ pub fn derive_token(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(Lexer)]
 pub fn derive_lexer(input: TokenStream) -> TokenStream {
 	lexer::derive(input)
-}
-
-#[proc_macro_derive(Parse, attributes(parse_token, token, token_kind))]
-pub fn derive_parse(input: TokenStream) -> TokenStream {
-	parse::derive(input)
 }
 
 #[proc_macro_derive(DebugLisp)]

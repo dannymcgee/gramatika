@@ -10,9 +10,11 @@ pub use lexer::*;
 pub use parse::*;
 pub use span::*;
 
+pub use arcstr::{self, *};
+
 #[cfg(feature = "macros")]
 pub use gramatika_macro::*;
 #[cfg(feature = "macros")]
-pub use lazy_static::lazy_static;
+pub use once_cell;
 #[cfg(feature = "macros")]
-pub use regex::*;
+pub use regex_automata;

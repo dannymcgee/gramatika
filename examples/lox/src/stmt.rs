@@ -1,64 +1,64 @@
-use gramatika::{Parse, ParseStreamer, Result, SpannedError};
+use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::*;
 
 #[derive(DebugLisp)]
-pub struct Program<'a> {
-	pub stmts: Vec<Stmt<'a>>,
+pub struct Program {
+	pub stmts: Vec<Stmt>,
 }
 
 #[derive(DebugLisp)]
-pub enum Stmt<'a> {
-	Block(Vec<Stmt<'a>>),
-	Decl(Decl<'a>),
-	Expr(Expr<'a>),
-	For(ForStmt<'a>),
-	If(IfStmt<'a>),
-	Print(PrintStmt<'a>),
-	Return(ReturnStmt<'a>),
-	While(WhileStmt<'a>),
+pub enum Stmt {
+	Block(Vec<Stmt>),
+	Decl(Decl),
+	Expr(Expr),
+	For(ForStmt),
+	If(IfStmt),
+	Print(PrintStmt),
+	Return(ReturnStmt),
+	While(WhileStmt),
 }
 
 #[derive(DebugLisp)]
-pub struct ForStmt<'a> {
-	pub keyword: Token<'a>,
-	pub initializer: Option<Box<Stmt<'a>>>,
-	pub condition: Option<Expr<'a>>,
-	pub increment: Option<Expr<'a>>,
-	pub body: Box<Stmt<'a>>,
+pub struct ForStmt {
+	pub keyword: Token,
+	pub initializer: Option<Box<Stmt>>,
+	pub condition: Option<Expr>,
+	pub increment: Option<Expr>,
+	pub body: Box<Stmt>,
 }
 
 #[derive(DebugLisp)]
-pub struct IfStmt<'a> {
-	pub keyword: Token<'a>,
-	pub condition: Expr<'a>,
-	pub then_branch: Box<Stmt<'a>>,
-	pub else_branch: Option<Box<Stmt<'a>>>,
+pub struct IfStmt {
+	pub keyword: Token,
+	pub condition: Expr,
+	pub then_branch: Box<Stmt>,
+	pub else_branch: Option<Box<Stmt>>,
 }
 
 #[derive(DebugLisp)]
-pub struct PrintStmt<'a> {
-	pub keyword: Token<'a>,
-	pub value: Expr<'a>,
+pub struct PrintStmt {
+	pub keyword: Token,
+	pub value: Expr,
 }
 
 #[derive(DebugLisp)]
-pub struct ReturnStmt<'a> {
-	pub keyword: Token<'a>,
-	pub value: Option<Expr<'a>>,
+pub struct ReturnStmt {
+	pub keyword: Token,
+	pub value: Option<Expr>,
 }
 
 #[derive(DebugLisp)]
-pub struct WhileStmt<'a> {
-	pub keyword: Token<'a>,
-	pub condition: Expr<'a>,
-	pub body: Box<Stmt<'a>>,
+pub struct WhileStmt {
+	pub keyword: Token,
+	pub condition: Expr,
+	pub body: Box<Stmt>,
 }
 
-impl<'a> Parse<'a> for Program<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for Program {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let mut stmts = vec![];
 		while !input.is_empty() {
 			stmts.push(input.parse::<Stmt>()?);
@@ -68,23 +68,21 @@ impl<'a> Parse<'a> for Program<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for Stmt<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for Stmt {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
-		use Token::*;
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
+		use TokenKind::*;
 
 		match input.peek() {
-			Some(token) => match token {
-				Keyword("class" | "fun" | "var", _) => {
-					Ok(Stmt::Decl(input.parse::<Decl>()?))
-				}
-				Keyword("for", _) => Ok(Stmt::For(input.parse::<ForStmt>()?)),
-				Keyword("if", _) => Ok(Stmt::If(input.parse::<IfStmt>()?)),
-				Keyword("print", _) => Ok(Stmt::Print(input.parse::<PrintStmt>()?)),
-				Keyword("return", _) => Ok(Stmt::Return(input.parse::<ReturnStmt>()?)),
-				Keyword("while", _) => Ok(Stmt::While(input.parse::<WhileStmt>()?)),
-				Brace("{", _) => {
+			Some(token) => match token.as_matchable() {
+				(Keyword, "class" | "fun" | "var", _) => Ok(Stmt::Decl(input.parse()?)),
+				(Keyword, "for", _) => Ok(Stmt::For(input.parse()?)),
+				(Keyword, "if", _) => Ok(Stmt::If(input.parse()?)),
+				(Keyword, "print", _) => Ok(Stmt::Print(input.parse()?)),
+				(Keyword, "return", _) => Ok(Stmt::Return(input.parse()?)),
+				(Keyword, "while", _) => Ok(Stmt::While(input.parse()?)),
+				(Brace, "{", _) => {
 					input.consume(brace!["{"])?;
 
 					let mut stmts = vec![];
@@ -112,10 +110,10 @@ impl<'a> Parse<'a> for Stmt<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for ForStmt<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for ForStmt {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![for])?;
 
 		input.consume(brace!["("])?;
@@ -154,10 +152,10 @@ impl<'a> Parse<'a> for ForStmt<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for IfStmt<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for IfStmt {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![if])?;
 
 		input.consume(brace!["("])?;
@@ -182,10 +180,10 @@ impl<'a> Parse<'a> for IfStmt<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for PrintStmt<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for PrintStmt {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![print])?;
 		let value = input.parse::<Expr>()?;
 
@@ -195,10 +193,10 @@ impl<'a> Parse<'a> for PrintStmt<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for ReturnStmt<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for ReturnStmt {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![return])?;
 		let value = if input.check(punct![;]) {
 			None
@@ -212,10 +210,10 @@ impl<'a> Parse<'a> for ReturnStmt<'a> {
 	}
 }
 
-impl<'a> Parse<'a> for WhileStmt<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for WhileStmt {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		let keyword = input.consume(keyword![while])?;
 
 		input.consume(brace!["("])?;

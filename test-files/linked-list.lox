@@ -1,0 +1,125 @@
+class Node {
+	init (value, next) {
+		this.value = value;
+		this.nextNode = next;
+	}
+	next() {
+		return this.nextNode;
+	}
+}
+
+class List {
+	init () {
+		this.sentinel = Node(nil, nil);
+		this.head = this.sentinel;
+		this.tail = this.sentinel;
+	}
+
+	add(item) {
+		var new = Node(item, this.sentinel);
+
+		if (this.head == this.sentinel)
+			this.head = new;
+		else if (this.tail == this.sentinel) {
+			this.tail = new;
+			this.head.nextNode = this.tail;
+		} else {
+			var prev = this.tail;
+			this.tail = new;
+			prev.nextNode = this.tail;
+		}
+	}
+
+	next() {
+		return this.head;
+	}
+}
+
+fun forEach(callback, list) {
+	for (
+		var current = list.next();
+		current.next() != nil;
+		current = current.next()
+	)
+		callback(current.value);
+}
+
+fun map(transform, list) {
+	var result = List();
+	forEach(fun (current) {
+		result.add(transform(current));
+	}, list);
+
+	return result;
+}
+
+var nums = List();
+for (var i = 0; i < 10; i = i + 1) nums.add(i);
+
+var squares = map(fun (current) {
+	return current * current;
+}, nums);
+
+print "Squares:";
+forEach(fun (val) { print val; }, squares);
+print "";
+
+fun reduce(reducer, initial, list) {
+	var result = initial;
+	forEach(fun (item) {
+		result = reducer(result, item);
+	}, list);
+
+	return result;
+}
+
+print "Sum of squares:";
+var sum = reduce(fun (accum, current) {
+	return accum + current;
+}, 0, squares);
+print sum;
+print "";
+
+fun filter(predicate, list) {
+	var result = List();
+	forEach(fun (current) {
+		if (predicate(current))
+			result.add(current);
+	}, list);
+
+	return result;
+}
+
+var birds = List();
+birds.add("Duck");
+birds.add("Duck");
+birds.add("Goose");
+birds.add("Duck");
+birds.add("Duck");
+birds.add("Duck");
+birds.add("Goose");
+birds.add("Duck");
+birds.add("Duck");
+birds.add("Duck");
+birds.add("Duck");
+birds.add("Goose");
+
+var ducks = filter(fun (bird) {
+	return bird != "Goose";
+}, birds);
+
+var geese = filter(fun (bird) {
+	return bird == "Goose";
+}, birds);
+
+print "Birds:";
+forEach(fun (bird) { print bird; }, birds);
+print "";
+
+print "Ducks:";
+forEach(fun (duck) { print duck; }, ducks);
+print "";
+
+print "Geese:";
+forEach(fun (goose) { print goose; }, geese);
+print "";

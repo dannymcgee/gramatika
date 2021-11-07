@@ -1,19 +1,21 @@
 use std::fmt;
 
+use arcstr::ArcStr;
+
 use crate::Span;
 
-pub struct SpannedError<'a> {
+pub struct SpannedError {
 	pub message: String,
-	pub source: &'a str,
+	pub source: ArcStr,
 	pub span: Option<Span>,
 }
 
-impl<'a> std::error::Error for SpannedError<'a> {}
+impl std::error::Error for SpannedError {}
 
-pub type Result<'a, T> = std::result::Result<T, SpannedError<'a>>;
+pub type Result<T> = std::result::Result<T, SpannedError>;
 
-impl<'a> fmt::Display for SpannedError<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl fmt::Display for SpannedError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		if f.alternate() {
 			write!(f, "{}", self.message)
 		} else {
@@ -59,8 +61,8 @@ impl<'a> fmt::Display for SpannedError<'a> {
 	}
 }
 
-impl<'a> fmt::Debug for SpannedError<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl fmt::Debug for SpannedError {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		f.debug_struct("SpannedError")
 			.field("message", &self.message)
 			.field("source", &self.source)

@@ -1,107 +1,107 @@
-use gramatika::{Parse, ParseStreamer, Result, Spanned, SpannedError};
+use gramatika::{Parse, ParseStreamer, Result, Spanned, SpannedError, Token as _};
 
 use crate::*;
 
 #[derive(DebugLisp)]
-pub enum Expr<'a> {
-	Assignment(AssignmentExpr<'a>),
-	Binary(BinaryExpr<'a>),
-	Fun(FunExpr<'a>),
-	FunCall(FunCallExpr<'a>),
-	Get(GetExpr<'a>),
-	Grouping(Box<Expr<'a>>),
-	Literal(Token<'a>),
-	Logical(BinaryExpr<'a>),
-	Set(SetExpr<'a>),
-	Super(SuperExpr<'a>),
-	This(Token<'a>),
-	Unary(UnaryExpr<'a>),
-	Variable(Token<'a>),
+pub enum Expr {
+	Assignment(AssignmentExpr),
+	Binary(BinaryExpr),
+	Fun(FunExpr),
+	FunCall(FunCallExpr),
+	Get(GetExpr),
+	Grouping(Box<Expr>),
+	Literal(Token),
+	Logical(BinaryExpr),
+	Set(SetExpr),
+	Super(SuperExpr),
+	This(Token),
+	Unary(UnaryExpr),
+	Variable(Token),
 }
 
 #[derive(DebugLisp)]
-pub struct AssignmentExpr<'a> {
-	pub name: Token<'a>,
-	pub value: Box<Expr<'a>>,
+pub struct AssignmentExpr {
+	pub name: Token,
+	pub value: Box<Expr>,
 }
 
 #[derive(DebugLisp)]
-pub struct BinaryExpr<'a> {
-	pub lhs: Box<Expr<'a>>,
-	pub op: Token<'a>,
-	pub rhs: Box<Expr<'a>>,
+pub struct BinaryExpr {
+	pub lhs: Box<Expr>,
+	pub op: Token,
+	pub rhs: Box<Expr>,
 }
 
 #[derive(DebugLisp)]
-pub struct FunExpr<'a> {
-	pub params: Vec<Token<'a>>,
-	pub body: Vec<Stmt<'a>>,
+pub struct FunExpr {
+	pub params: Vec<Token>,
+	pub body: Vec<Stmt>,
 }
 
 #[derive(DebugLisp)]
-pub struct FunCallExpr<'a> {
-	pub callee: Box<Expr<'a>>,
-	pub args: Vec<Expr<'a>>,
+pub struct FunCallExpr {
+	pub callee: Box<Expr>,
+	pub args: Vec<Expr>,
 }
 
 #[derive(DebugLisp)]
-pub struct GetExpr<'a> {
-	pub obj: Box<Expr<'a>>,
-	pub name: Token<'a>,
+pub struct GetExpr {
+	pub obj: Box<Expr>,
+	pub name: Token,
 }
 
 #[derive(DebugLisp)]
-pub struct SetExpr<'a> {
-	pub obj: Box<Expr<'a>>,
-	pub name: Token<'a>,
-	pub value: Box<Expr<'a>>,
+pub struct SetExpr {
+	pub obj: Box<Expr>,
+	pub name: Token,
+	pub value: Box<Expr>,
 }
 
 #[derive(DebugLisp)]
-pub struct SuperExpr<'a> {
-	pub keyword: Token<'a>,
-	pub method: Token<'a>,
+pub struct SuperExpr {
+	pub keyword: Token,
+	pub method: Token,
 }
 
 #[derive(DebugLisp)]
-pub struct UnaryExpr<'a> {
-	pub op: Token<'a>,
-	pub rhs: Box<Expr<'a>>,
+pub struct UnaryExpr {
+	pub op: Token,
+	pub rhs: Box<Expr>,
 }
 
-trait RecursiveDescent<'a> {
+trait RecursiveDescent {
 	type Token: gramatika::Token;
 
-	fn assignment(&mut self) -> Result<'a, Expr<'a>>;
-	fn or(&mut self) -> Result<'a, Expr<'a>>;
-	fn and(&mut self) -> Result<'a, Expr<'a>>;
-	fn equality(&mut self) -> Result<'a, Expr<'a>>;
-	fn comparison(&mut self) -> Result<'a, Expr<'a>>;
-	fn term(&mut self) -> Result<'a, Expr<'a>>;
-	fn factor(&mut self) -> Result<'a, Expr<'a>>;
-	fn unary(&mut self) -> Result<'a, Expr<'a>>;
-	fn call(&mut self) -> Result<'a, Expr<'a>>;
-	fn finish_call(&mut self, callee: Expr<'a>) -> Result<'a, Expr<'a>>;
-	fn primary(&mut self) -> Result<'a, Expr<'a>>;
+	fn assignment(&mut self) -> Result<Expr>;
+	fn or(&mut self) -> Result<Expr>;
+	fn and(&mut self) -> Result<Expr>;
+	fn equality(&mut self) -> Result<Expr>;
+	fn comparison(&mut self) -> Result<Expr>;
+	fn term(&mut self) -> Result<Expr>;
+	fn factor(&mut self) -> Result<Expr>;
+	fn unary(&mut self) -> Result<Expr>;
+	fn call(&mut self) -> Result<Expr>;
+	fn finish_call(&mut self, callee: Expr) -> Result<Expr>;
+	fn primary(&mut self) -> Result<Expr>;
 	fn binary(
 		&mut self,
 		operators: &[Self::Token],
-		operand_method: fn(&mut Self) -> Result<'a, Expr<'a>>,
-	) -> Result<'a, Expr<'a>>;
+		operand_method: fn(&mut Self) -> Result<Expr>,
+	) -> Result<Expr>;
 }
 
-impl<'a> Parse<'a> for Expr<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for Expr {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		input.assignment()
 	}
 }
 
-impl<'a> Parse<'a> for FunExpr<'a> {
-	type Stream = ParseStream<'a>;
+impl Parse for FunExpr {
+	type Stream = ParseStream;
 
-	fn parse(input: &mut Self::Stream) -> Result<'a, Self> {
+	fn parse(input: &mut Self::Stream) -> Result<Self> {
 		input.consume(brace!["("])?;
 
 		let mut params = vec![];
@@ -126,10 +126,10 @@ impl<'a> Parse<'a> for FunExpr<'a> {
 	}
 }
 
-impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
-	type Token = Token<'a>;
+impl RecursiveDescent for ParseStream {
+	type Token = Token;
 
-	fn assignment(&mut self) -> Result<'a, Expr<'a>> {
+	fn assignment(&mut self) -> Result<Expr> {
 		let expr = self.or()?;
 
 		if self.check(operator![=]) {
@@ -158,7 +158,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		}
 	}
 
-	fn or(&mut self) -> Result<'a, Expr<'a>> {
+	fn or(&mut self) -> Result<Expr> {
 		let mut expr = self.and()?;
 
 		while self.check(keyword![or]) {
@@ -175,7 +175,7 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		Ok(expr)
 	}
 
-	fn and(&mut self) -> Result<'a, Expr<'a>> {
+	fn and(&mut self) -> Result<Expr> {
 		let mut expr = self.equality()?;
 
 		while self.check(keyword![and]) {
@@ -192,26 +192,26 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		Ok(expr)
 	}
 
-	fn equality(&mut self) -> Result<'a, Expr<'a>> {
+	fn equality(&mut self) -> Result<Expr> {
 		self.binary(&[operator![==], operator![!=]], Self::comparison)
 	}
 
-	fn comparison(&mut self) -> Result<'a, Expr<'a>> {
+	fn comparison(&mut self) -> Result<Expr> {
 		self.binary(
 			&[operator![>], operator![>=], operator![<], operator![<=]],
 			Self::term,
 		)
 	}
 
-	fn term(&mut self) -> Result<'a, Expr<'a>> {
+	fn term(&mut self) -> Result<Expr> {
 		self.binary(&[operator!["-"], operator![+]], Self::factor)
 	}
 
-	fn factor(&mut self) -> Result<'a, Expr<'a>> {
+	fn factor(&mut self) -> Result<Expr> {
 		self.binary(&[operator![/], operator![*]], Self::unary)
 	}
 
-	fn unary(&mut self) -> Result<'a, Expr<'a>> {
+	fn unary(&mut self) -> Result<Expr> {
 		if self.check(operator![!]) || self.check(operator!["-"]) {
 			let op = self.consume_kind(TokenKind::Operator)?;
 			let rhs = self.unary()?;
@@ -225,34 +225,37 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		}
 	}
 
-	fn call(&mut self) -> Result<'a, Expr<'a>> {
-		use Token::*;
+	fn call(&mut self) -> Result<Expr> {
+		use TokenKind::*;
 
 		let mut expr = self.primary()?;
 		expr = loop {
 			match self.peek() {
-				Some(Brace("(", _)) => {
-					self.consume(brace!["("])?;
+				Some(token) => match token.as_matchable() {
+					(Brace, "(", _) => {
+						self.consume(brace!["("])?;
 
-					expr = self.finish_call(expr)?;
-				}
-				Some(Punct(".", _)) => {
-					self.consume(punct![.])?;
-					let name = self.consume_kind(TokenKind::Ident)?;
+						expr = self.finish_call(expr)?;
+					}
+					(Punct, ".", _) => {
+						self.consume(punct![.])?;
+						let name = self.consume_kind(TokenKind::Ident)?;
 
-					expr = Expr::Get(GetExpr {
-						obj: Box::new(expr),
-						name,
-					});
-				}
-				Some(_) | None => break expr,
+						expr = Expr::Get(GetExpr {
+							obj: Box::new(expr),
+							name,
+						});
+					}
+					_ => break expr,
+				},
+				None => break expr,
 			}
 		};
 
 		Ok(expr)
 	}
 
-	fn finish_call(&mut self, callee: Expr<'a>) -> Result<'a, Expr<'a>> {
+	fn finish_call(&mut self, callee: Expr) -> Result<Expr> {
 		let mut args = vec![];
 		while !self.is_empty() && !self.check(brace![")"]) {
 			if !args.is_empty() {
@@ -269,35 +272,38 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 		}))
 	}
 
-	fn primary(&mut self) -> Result<'a, Expr<'a>> {
-		use Token::*;
+	fn primary(&mut self) -> Result<Expr> {
+		use TokenKind::*;
 
 		match self.next() {
-			Some(
-				token @ Keyword("true" | "false" | "nil", _)
-				| token @ NumLit(_, _)
-				| token @ StrLit(_, _),
-			) => Ok(Expr::Literal(token)),
-			Some(keyword @ Keyword("super", _)) => {
-				self.consume(punct![.])?;
-				let method = self.consume_kind(TokenKind::Ident)?;
+			Some(token) => match token.as_matchable() {
+				(Keyword, "true" | "false" | "nil", _)
+				| (NumLit, _, _)
+				| (StrLit, _, _) => Ok(Expr::Literal(token)),
+				(Keyword, "super", _) => {
+					self.consume(punct![.])?;
+					let method = self.consume_kind(Ident)?;
 
-				Ok(Expr::Super(SuperExpr { keyword, method }))
-			}
-			Some(token @ Keyword("this", _)) => Ok(Expr::This(token)),
-			Some(token @ Ident(_, _)) => Ok(Expr::Variable(token)),
-			Some(Keyword("fun", _)) => Ok(Expr::Fun(self.parse::<FunExpr>()?)),
-			Some(Brace("(", _)) => {
-				let expr = self.parse::<Expr>()?;
-				self.consume(brace![")"])?;
+					Ok(Expr::Super(SuperExpr {
+						keyword: token,
+						method,
+					}))
+				}
+				(Keyword, "this", _) => Ok(Expr::This(token)),
+				(Ident, _, _) => Ok(Expr::Variable(token)),
+				(Keyword, "fun", _) => Ok(Expr::Fun(self.parse()?)),
+				(Brace, "(", _) => {
+					let expr = self.parse::<Expr>()?;
+					self.consume(brace![")"])?;
 
-				Ok(Expr::Grouping(Box::new(expr)))
-			}
-			Some(other) => Err(SpannedError {
-				message: "Expected expression".into(),
-				source: self.source(),
-				span: Some(other.span()),
-			}),
+					Ok(Expr::Grouping(Box::new(expr)))
+				}
+				_ => Err(SpannedError {
+					message: "Expected expression".into(),
+					source: self.source(),
+					span: Some(token.span()),
+				}),
+			},
 			None => Err(SpannedError {
 				message: "Unexpected end of input".into(),
 				source: self.source(),
@@ -309,11 +315,11 @@ impl<'a> RecursiveDescent<'a> for ParseStream<'a> {
 	fn binary(
 		&mut self,
 		operators: &[Self::Token],
-		operand_method: fn(&mut Self) -> Result<'a, Expr<'a>>,
-	) -> Result<'a, Expr<'a>> {
+		operand_method: fn(&mut Self) -> Result<Expr>,
+	) -> Result<Expr> {
 		let mut expr = operand_method(self)?;
 
-		while operators.iter().any(|op| self.check(*op)) {
+		while operators.iter().any(|op| self.check(op.clone())) {
 			let op = self.consume_kind(TokenKind::Operator)?;
 			let rhs = operand_method(self)?;
 

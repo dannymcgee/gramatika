@@ -1,0 +1,50 @@
+class Breakfast {
+	cook() {
+		print "Eggs a-fryin'!";
+	}
+	serve(who) {
+		print "Enjoy your breakfast, " + who + ".";
+	}
+}
+
+fun printClass(klass) {
+	print klass;
+}
+
+var myClass = Breakfast;
+printClass(Breakfast);
+
+var breakfast = Breakfast();
+print breakfast;
+
+breakfast.meat = "sausage";
+breakfast.bread = "sourdough";
+
+class Breakfast {
+	init (meat, bread) {
+		this.meat = meat;
+		this.bread = bread;
+	}
+	serve(who) {
+		print "Enjoy your " + this.meat + " and " + this.bread + ", " + who + ".";
+	}
+}
+var baconAndToast = Breakfast("bacon", "toast");
+baconAndToast.serve("Dear Reader");
+
+print baconAndToast.init("ham", "bagels");
+baconAndToast.serve("ya filthy animal");
+
+class Brunch < Breakfast {
+	init (meat, bread, drink) {
+		super.init(meat, bread);
+		this.drink = drink;
+	}
+	serve(who) {
+		super.serve(who);
+		print "How about a " + this.drink + " to wash it down?";
+	}
+}
+
+var benedict = Brunch("ham", "English muffin", "Bloody Mary");
+benedict.serve("Noble Reader");
