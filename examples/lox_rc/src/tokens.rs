@@ -380,6 +380,39 @@ impl gramatika::Token for Token {
 			StrLit(_, _) => TokenKind::StrLit,
 		}
 	}
+
+	fn as_matchable(&self) -> (Self::Kind, &str, Span) {
+		match self {
+			Token::Keyword(const_kw, span) => {
+				let kind = TokenKind::Keyword;
+
+				match const_kw {
+					Keyword::And => (kind, "and", *span),
+					Keyword::Class => (kind, "class", *span),
+					Keyword::Else => (kind, "else", *span),
+					Keyword::False => (kind, "false", *span),
+					Keyword::For => (kind, "for", *span),
+					Keyword::Fun => (kind, "fun", *span),
+					Keyword::If => (kind, "if", *span),
+					Keyword::Nil => (kind, "nil", *span),
+					Keyword::Or => (kind, "or", *span),
+					Keyword::Print => (kind, "print", *span),
+					Keyword::Return => (kind, "return", *span),
+					Keyword::Super => (kind, "super", *span),
+					Keyword::This => (kind, "this", *span),
+					Keyword::True => (kind, "true", *span),
+					Keyword::Var => (kind, "var", *span),
+					Keyword::While => (kind, "while", *span),
+				}
+			}
+			Token::Ident(lex, span) => (TokenKind::Ident, lex.as_str(), *span),
+			Token::Brace(lex, span) => (TokenKind::Brace, lex.as_str(), *span),
+			Token::Punct(lex, span) => (TokenKind::Punct, lex.as_str(), *span),
+			Token::Operator(lex, span) => (TokenKind::Operator, lex.as_str(), *span),
+			Token::NumLit(lex, span) => (TokenKind::NumLit, lex.as_str(), *span),
+			Token::StrLit(lex, span) => (TokenKind::StrLit, lex.as_str(), *span),
+		}
+	}
 }
 
 impl Spanned for Token {

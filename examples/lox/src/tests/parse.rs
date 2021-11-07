@@ -171,8 +171,8 @@ fn parse(input: &str) {
 	let mut parser = ParseStream::from(input);
 
 	match parser.parse::<Program>() {
-		Ok(program) => {
-			eprintln!("{:#?}", program);
+		Ok(_program) => {
+			// eprintln!("{:#?}", program);
 		}
 		Err(err) => {
 			eprintln!("{}", err);

@@ -10,13 +10,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
 	let vis = &ast.vis;
 	let lexer_ident = format_ident!("Lexer");
 
-	let (variant_ident, variant_pattern, _) = match &ast.data {
+	let meta = match &ast.data {
 		Data::Enum(DataEnum { variants, .. }) => common::expand_variants(variants),
 		_ => unimplemented!(),
 	};
 
-	let (ctor_ident, matcher_ident) =
-		common::token_funcs(&variant_ident, &variant_pattern);
+	let variant_ident = &meta.idents;
+	let (ctor_ident, matcher_ident, _) = common::token_funcs(variant_ident);
 
 	let result = quote! {
 		use ::gramatika::Lexer as _;
@@ -63,11 +63,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
 				)*;
 
 				match result {
-					Some((m, ctor)) => {
-						let match_end = m.end();
-						let lexeme = self.remaining.substr_from(m.as_str());
+					Some(((start, end), ctor)) => {
+						let lexeme = self.remaining.substr(start..end);
 
-						self.lookahead.character += match_end;
+						self.lookahead.character += end;
 
 						let span = ::gramatika::Span {
 							start: self.current,
@@ -75,7 +74,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 						};
 						let token = ctor(lexeme, span);
 
-						self.remaining = self.remaining.substr(match_end..);
+						self.remaining = self.remaining.substr(end..);
 						self.current = self.lookahead;
 
 						Some(token)

@@ -12,13 +12,16 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let kind_ident = format_ident!("{}Kind", ident);
 	let generics = &ast.generics;
 
-	let (variant_ident, variant_pattern, variant_fields) = match &ast.data {
+	let meta = match &ast.data {
 		Data::Enum(DataEnum { variants, .. }) => common::expand_variants(variants),
 		_ => unimplemented!(),
 	};
+	let variant_ident = &meta.idents;
+	let variant_fields = &meta.fields;
+	let variant_match_body = &meta.match_bodies;
+	let variant_pattern_body = &meta.pattern_bodies;
 
-	let (ctor_ident, matcher_ident) =
-		common::token_funcs(&variant_ident, &variant_pattern);
+	let (ctor_ident, matcher_ident, variant_pattern) = common::token_funcs(variant_ident);
 	let ctor_params = variant_fields
 		.iter()
 		.map(|fields| match fields {
@@ -67,14 +70,18 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				Self::#variant_ident(#(#ctor_args),*)
 			})*
 
+			#(fn #variant_pattern() -> &'static ::std::sync::RwLock<
+				::gramatika::regex_automata::Regex<
+					::gramatika::regex_automata::SparseDFA<
+						&'static [u8], u32>>>
+			{
+				#variant_pattern_body
+			})*
+
 			#(pub fn #matcher_ident(
 				input: &str
-			) -> ::std::option::Option<::gramatika::Match> {
-				lazy_static! {
-					static ref __VARIANT_PATTERN: ::gramatika::Regex =
-						::gramatika::Regex::new(#variant_pattern).unwrap();
-				}
-				__VARIANT_PATTERN.find(input)
+			) -> ::std::option::Option<(usize, usize)> {
+				#variant_match_body
 			})*
 		}
 
@@ -107,6 +114,16 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				match self {
 					#(#ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
 				}
+			}
+
+			fn as_matchable(&self) -> (#kind_ident, &str, ::gramatika::Span) {
+				match self {#(
+					#ident::#variant_ident(lexeme, span) => (
+						#kind_ident::#variant_ident,
+						lexeme.as_str(),
+						*span,
+					)
+				),*}
 			}
 		}
 

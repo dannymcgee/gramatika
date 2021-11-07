@@ -29,12 +29,12 @@ pub fn parser(c: &mut Criterion) {
 	];
 
 	for (key, program) in programs {
-		// let name = BenchmarkId::new("&'a str", key);
-		// group.bench_with_input(name, program, move |b, input| {
-		// 	b.iter_with_large_drop(|| lox::parse(input.into()).unwrap())
-		// });
+		let name = BenchmarkId::new("derived", key);
+		group.bench_with_input(name, program, move |b, input| {
+			b.iter_with_large_drop(|| lox::parse(input.into()).unwrap())
+		});
 
-		let name = BenchmarkId::new("Rc<str>", key);
+		let name = BenchmarkId::new("manual", key);
 		group.bench_with_input(name, program, move |b, input| {
 			b.iter_with_large_drop(|| lox_rc::parse(input.into()).unwrap())
 		});

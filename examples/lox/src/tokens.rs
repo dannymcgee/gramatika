@@ -1,39 +1,40 @@
 use std::fmt;
 
-use gramatika::{DebugLisp, Span, Token as _};
+use gramatika::{DebugLisp, Span, Substr, Token as _};
 
-#[derive(Clone, Copy, DebugLispToken, PartialEq, Token, Lexer)]
-pub enum Token<'a> {
-	#[pattern = r"(and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while)\b"]
-	Keyword(&'a str, Span),
+#[derive(DebugLispToken, PartialEq, Token, Lexer)]
+pub enum Token {
+	#[subset_of(Ident)]
+	#[pattern = "and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while"]
+	Keyword(Substr, Span),
 
 	#[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
-	Ident(&'a str, Span),
+	Ident(Substr, Span),
 
 	#[pattern = r"[(){}]"]
-	Brace(&'a str, Span),
+	Brace(Substr, Span),
 
 	#[pattern = "[,.;]"]
-	Punct(&'a str, Span),
+	Punct(Substr, Span),
 
 	#[pattern = "[=!<>]=?"]
 	#[pattern = "[-+*/]"]
-	Operator(&'a str, Span),
+	Operator(Substr, Span),
 
 	#[pattern = "[0-9]+"]
-	NumLit(&'a str, Span),
+	NumLit(Substr, Span),
 
 	#[pattern = r#""[^"]*""#]
-	StrLit(&'a str, Span),
+	StrLit(Substr, Span),
 }
 
-impl<'a> fmt::Display for Token<'a> {
+impl fmt::Display for Token {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{}", self.lexeme())
 	}
 }
 
-impl<'a> fmt::Debug for Token<'a> {
+impl fmt::Debug for Token {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		DebugLisp::fmt(self, f, 0)
 	}

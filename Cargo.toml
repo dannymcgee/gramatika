@@ -1,7 +1,6 @@
 [workspace]
 members = [
 	"crates/*",
-	"examples/lox_rc",
-	"examples/expand",
+	"examples/*",
 	"benches/"
 ]

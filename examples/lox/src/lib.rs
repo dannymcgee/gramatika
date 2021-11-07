@@ -18,9 +18,9 @@ pub use tokens::Lexer;
 
 use gramatika::ParseStreamer;
 
-type ParseStream<'a> = gramatika::ParseStream<'a, Token<'a>, Lexer<'a>>;
+type ParseStream = gramatika::ParseStream<Token, Lexer>;
 
-pub fn parse<'a>(input: String) -> gramatika::Result<'a, Program<'a>> {
+pub fn parse(input: String) -> gramatika::Result<Program> {
 	ParseStream::from(input).parse()
 }
 

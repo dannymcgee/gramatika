@@ -17,4 +17,8 @@ pub use gramatika_macro::*;
 #[cfg(feature = "macros")]
 pub use lazy_static::lazy_static;
 #[cfg(feature = "macros")]
+pub use once_cell;
+#[cfg(feature = "macros")]
 pub use regex::*;
+#[cfg(feature = "macros")]
+pub use regex_automata;
