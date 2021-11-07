@@ -17,38 +17,104 @@ where Self: Sized
 pub trait ParseStreamer {
 	type Token: Token + Spanned;
 
+	/// Provides a more convenient API for parsing other implementers of the [`Parse`]
+	/// trait.
+	///
+	/// ```
+	/// impl Parse for MyParentNode {
+	///     type Stream = MyStream;
+	///
+	///     fn parse(input: &mut Self::Stream) -> Result<Self> {
+	///         let foo_child = input.parse()?;
+	///         let bar_child = input.parse()?;
+	///         let baz_child = input.parse()?;
+	///
+	///         Ok(Self {
+	///             foo_child,
+	///             bar_child,
+	///             baz_child,
+	///         })
+	///     }
+	/// }
+	/// ```
 	fn parse<P>(&mut self) -> Result<P>
 	where P: Parse<Stream = Self> {
 		P::parse(self)
 	}
 
+	/// Returns `true` when there are no more tokens in the stream.
 	fn is_empty(&mut self) -> bool;
+
+	/// Returns a [`Some`] reference to the next [`Token`] in the stream without advancing
+	/// the iterator, or [`None`] if the stream is empty.
 	fn peek(&mut self) -> Option<&Self::Token>;
+
+	/// Returns a [`Some`] reference to the last token consumed by the iterator. Returns
+	/// [`None`] if the source string contains no tokens, or if no tokens have been
+	/// consumed yet.
+	///
+	/// Underlying data access is `O(1)` in the [crate-provided implementation].
+	///
+	/// [crate-provided implementation]: ParseStream
 	fn prev(&mut self) -> Option<&Self::Token>;
+
+	/// Indicates whether the next [`Token`] in the stream matches the given [`Kind`],
+	/// without advancing the iterator.
+	///
+	/// [`Kind`]: Token::Kind
 	fn check_kind(&mut self, kind: <Self::Token as Token>::Kind) -> bool;
+
+	/// Indicates whether the next [`Token`] in the stream matches the parameter by
+	/// comparing their [`lexeme`]s. Does not advance the iterator.
+	///
+	/// [`lexeme`]: Token::lexeme
 	fn check(&mut self, compare: Self::Token) -> bool;
+
+	/// Advances the iterator, returning [`Ok`] with the next [`Token`] if it matches the
+	/// parameter by comparing their [`lexeme`]s. Otherwise returns a contextual
+	/// [`Err`]`(`[`SpannedError`]`)`.
+	///
+	/// [`lexeme`]: Token::lexeme
 	fn consume(&mut self, compare: Self::Token) -> Result<Self::Token>;
+
+	/// Advances the iterator, returning [`Ok`] with the next [`Token`] if it matches the
+	/// given [`Kind`]. Otherwise returns a contextual [`Err`]`(`[`SpannedError`]`)`.
+	///
+	/// [`Kind`]: Token::Kind
 	fn consume_kind(&mut self, kind: <Self::Token as Token>::Kind)
 		-> Result<Self::Token>;
 
+	/// ### TODO:
+	/// * Docs
+	/// * Consider moving to a different trait or providing a default impl to reduce the
+	///   burden of manually implementing this trait.
 	fn consume_as(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
 		convert: TokenCtor<Self::Token>,
 	) -> Result<Self::Token>;
 
+	/// ### TODO:
+	/// * Docs
+	/// * Consider moving to a different trait or providing a default impl to reduce the
+	///   burden of manually implementing this trait.
 	fn upgrade_last(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
 		convert: TokenCtor<Self::Token>,
 	) -> Result<Self::Token>;
 
+	/// ### TODO:
+	/// * Docs
+	/// * Consider moving to a different trait or providing a default impl to reduce the
+	///   burden of manually implementing this trait.
 	fn upgrade(
 		&mut self,
 		token: Self::Token,
 		convert: TokenCtor<Self::Token>,
 	) -> Result<Self::Token>;
 
+	/// Advances the iterator, ignoring the next [`Token`].
 	fn discard(&mut self);
 }
 
