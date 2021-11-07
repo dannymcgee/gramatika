@@ -1,6 +1,6 @@
 [package]
 name = "gramatika"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2018"
 authors = ["Danny McGee <dannymcgee@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -8,13 +8,16 @@ readme = "../../README.md"
 repository = "http://github.com/dannymcgee/gramatika"
 description = "A minimal toolkit for writing parsers with Rust"
 
+[lib]
+doctest = false
+
 [dependencies]
 arcstr = { version = "1.1", features = ["substr"] }
 once_cell = { version = "1.8", optional = true }
 regex-automata = { version = "0.1", optional = true }
 
 [dependencies.gramatika-macro]
-version = "0.3.1"
+version = "0.4.0"
 path = "../gramatika-macro"
 optional = true
 
