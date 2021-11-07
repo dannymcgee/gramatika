@@ -1,8 +1,10 @@
 [package]
-name = "lox_rc"
+name = "lox_manual_impl"
 version = "0.1.0"
 edition = "2018"
 
 [dependencies]
 gramatika = { path = "../../crates/gramatika", features = ["macros"] }
 arcstr = { version = "1", features = ["substr"] }
+regex = "1.5"
+lazy_static = "1.4"

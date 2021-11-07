@@ -3,30 +3,26 @@
 use std::fmt;
 
 use arcstr::Substr;
-use gramatika::{lazy_static, DebugLisp, Match, Regex, Span, Spanned, Token as _};
+use gramatika::{DebugLisp, Span, Spanned, Token as _};
+use lazy_static::lazy_static;
+use regex::{Match, Regex};
 
 #[derive(PartialEq)]
 pub enum Token {
-	// #[pattern = r"(and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while)\b"]
+	// and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while
 	Keyword(Keyword, Span),
-
-	// #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	// [a-zA-Z_][a-zA-Z0-9_]*
 	Ident(Substr, Span),
-
-	// #[pattern = r"[(){}]"]
+	// [(){}]
 	Brace(Substr, Span),
-
-	// #[pattern = "[,.;]"]
+	// [,.;]
 	Punct(Substr, Span),
-
-	// #[pattern = "[=!<>]=?"]
-	// #[pattern = "[-+*/]"]
+	// [=!<>]=?
+	// [-+*/]
 	Operator(Substr, Span),
-
-	// #[pattern = "[0-9]+"]
+	// [0-9]+
 	NumLit(Substr, Span),
-
-	// #[pattern = r#""[^"]*""#]
+	// "[^"]*"
 	StrLit(Substr, Span),
 }
 
@@ -154,21 +150,6 @@ impl Token {
 	}
 
 	// Matchers
-	pub fn match_keyword(input: &str) -> Option<Match> {
-		lazy_static! {
-			static ref PATTERN: Regex = Regex::new(
-				r"^(and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while)\b"
-			)
-			.unwrap();
-		}
-		PATTERN.find(input)
-	}
-	pub fn match_ident(input: &str) -> Option<Match> {
-		lazy_static! {
-			static ref PATTERN: Regex = Regex::new("^([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
-		}
-		PATTERN.find(input)
-	}
 	pub fn match_brace(input: &str) -> Option<Match> {
 		lazy_static! {
 			static ref PATTERN: Regex = Regex::new(r"^([(){}])").unwrap();

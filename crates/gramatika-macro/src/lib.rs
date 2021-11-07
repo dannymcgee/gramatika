@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 mod common;
 mod debug_lisp;
 mod lexer;
-mod patterns;
+mod regex;
 mod token;
 
 #[proc_macro_derive(Token, attributes(pattern, subset_of))]

@@ -10,76 +10,75 @@ pub struct Lexer {
 	lookahead: Position,
 }
 
+/// (Note: doc-comment purely for the sake of syntax highlighting)
 /// ```
-/// fn main() {
-///    let mut len = 0_usize;
-///    let mut keyword: Option<Keyword> = None;
-///    let mut iter = self.remaining.char_indices();
+/// let mut len = 0_usize;
+/// let mut keyword: Option<Keyword> = None;
+/// let mut iter = self.remaining.char_indices();
 ///
-///    while let Some((i, c)) = iter.next() {
-///       // Recursuve -- not really viable for macro_rules!
-///       match c {
-///          'a' => match iter.next() {
-///             Some((_, 'n')) => match iter.next() {
-///                Some((_, 'd')) => {
-///                    keyword = Some(Keyword::And);
-///                    len = 3;
-///                }
-///                Some((i, _)) => {
-///                    keyword = None;
-///                    len = i;
-///                }
-///                None => break,
+/// while let Some((i, c)) = iter.next() {
+///    // Recursuve -- not really viable for macro_rules!
+///    match c {
+///       'a' => match iter.next() {
+///          Some((_, 'n')) => match iter.next() {
+///             Some((_, 'd')) => {
+///                 keyword = Some(Keyword::And);
+///                 len = 3;
 ///             }
 ///             Some((i, _)) => {
-///                keyword = None;
-///                len = i;
+///                 keyword = None;
+///                 len = i;
 ///             }
 ///             None => break,
 ///          }
-///       }
-///
-///       // Ugly, but just might work!
-///       match c {
-///          'a' => {
-///             len += 1;
-///             keyword = Some(Keyword::And);
-///
-///             // macro iteration...
-///             let next = iter.next();
-///             if next.is_none() {
-///                break;
-///             }
-///             len += 1;
-///
-///             if !matches!(next, Some((_, 'n'))) {
-///                keyword = None;
-///
-///                if !matches!(next, Some((_, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))) {
-///                    len -= 1;
-///                }
-///                continue;
-///             }
-///
-///             // macro iteration...
-///             let next = iter.next();
-///             if next.is_none() {
-///                break;
-///             }
-///             len += 1;
-///
-///             if !matches!(next, Some((_, 'd'))) {
-///                keyword = None;
-///
-///                if !matches!(next, Some((_, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))) {
-///                    len -= 1;
-///                }
-///                continue;
-///             }
-///
-///             // end macro iterations
-///             len = $macro_var;
+///          Some((i, _)) => {
+///             keyword = None;
+///             len = i;
 ///          }
+///          None => break,
+///       }
+///    }
+///
+///    // Ugly, but just might work!
+///    match c {
+///       'a' => {
+///          len += 1;
+///          keyword = Some(Keyword::And);
+///
+///          // macro iteration...
+///          let next = iter.next();
+///          if next.is_none() {
+///             break;
+///          }
+///          len += 1;
+///
+///          if !matches!(next, Some((_, 'n'))) {
+///             keyword = None;
+///
+///             if !matches!(next, Some((_, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))) {
+///                 len -= 1;
+///             }
+///             continue;
+///          }
+///
+///          // macro iteration...
+///          let next = iter.next();
+///          if next.is_none() {
+///             break;
+///          }
+///          len += 1;
+///
+///          if !matches!(next, Some((_, 'd'))) {
+///             keyword = None;
+///
+///             if !matches!(next, Some((_, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))) {
+///                 len -= 1;
+///             }
+///             continue;
+///          }
+///
+///          // end macro iterations
+///          len = $macro_var;
 ///       }
 ///    }
 /// }

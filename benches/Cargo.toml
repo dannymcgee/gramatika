@@ -7,7 +7,7 @@ edition = "2018"
 criterion = "0.3"
 gramatika = { path = "../crates/gramatika" }
 lox = { path = "../examples/lox" }
-lox_rc = { path = "../examples/lox_rc" }
+lox_manual_impl = { path = "../examples/lox_manual_impl" }
 
 [[bench]]
 name = "lexer"

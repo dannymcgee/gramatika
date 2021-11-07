@@ -18,10 +18,9 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	};
 	let variant_ident = &meta.idents;
 	let variant_fields = &meta.fields;
-	let variant_match_body = &meta.match_bodies;
-	let variant_pattern_body = &meta.pattern_bodies;
+	let variant_match_impl = &meta.regex_match_impls;
 
-	let (ctor_ident, matcher_ident, variant_pattern) = common::token_funcs(variant_ident);
+	let (ctor_ident, _) = common::token_funcs(variant_ident);
 	let ctor_params = variant_fields
 		.iter()
 		.map(|fields| match fields {
@@ -48,7 +47,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			fields
 				.iter()
 				.cloned()
-				.map(|field| format_ident!("{}", field.ident.unwrap()))
+				.map(|field| field.ident.unwrap())
 				.collect::<Vec<_>>()
 		})
 		.collect::<Vec<_>>();
@@ -70,19 +69,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 				Self::#variant_ident(#(#ctor_args),*)
 			})*
 
-			#(fn #variant_pattern() -> &'static ::std::sync::RwLock<
-				::gramatika::regex_automata::Regex<
-					::gramatika::regex_automata::SparseDFA<
-						&'static [u8], u32>>>
-			{
-				#variant_pattern_body
-			})*
-
-			#(pub fn #matcher_ident(
-				input: &str
-			) -> ::std::option::Option<(usize, usize)> {
-				#variant_match_body
-			})*
+			#(#variant_match_impl)*
 		}
 
 		#(

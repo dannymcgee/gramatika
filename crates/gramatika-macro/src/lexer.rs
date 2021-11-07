@@ -16,7 +16,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 	};
 
 	let variant_ident = &meta.idents;
-	let (ctor_ident, matcher_ident, _) = common::token_funcs(variant_ident);
+	let (ctor_ident, matcher_ident) = common::token_funcs(variant_ident);
 
 	let result = quote! {
 		use ::gramatika::Lexer as _;

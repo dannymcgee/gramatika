@@ -77,5 +77,4 @@ fn expect_err(input: &str, expected_message: &str) {
 		eprintln!("{}", err);
 		panic!();
 	}
-	// assert_eq!(expected_message, format!("{}", err));
 }

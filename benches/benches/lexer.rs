@@ -37,7 +37,7 @@ pub fn lexer(c: &mut Criterion) {
 
 		let name = BenchmarkId::new("manual", key);
 		group.bench_with_input(name, program, move |b, input| {
-			b.iter_with_large_drop(|| lox_rc::Lexer::new(input.into()).scan())
+			b.iter_with_large_drop(|| lox_manual_impl::Lexer::new(input.into()).scan())
 		});
 	}
 }

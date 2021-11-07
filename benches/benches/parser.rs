@@ -36,7 +36,7 @@ pub fn parser(c: &mut Criterion) {
 
 		let name = BenchmarkId::new("manual", key);
 		group.bench_with_input(name, program, move |b, input| {
-			b.iter_with_large_drop(|| lox_rc::parse(input.into()).unwrap())
+			b.iter_with_large_drop(|| lox_manual_impl::parse(input.into()).unwrap())
 		});
 	}
 }
