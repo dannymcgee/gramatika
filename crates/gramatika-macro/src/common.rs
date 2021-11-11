@@ -1,27 +1,20 @@
 use convert_case::{Case, Casing};
-use proc_macro2::{self as pm2, Ident};
+use proc_macro2::Ident;
 use quote::format_ident;
-use syn::{punctuated::Punctuated, token::Comma, Fields, Variant};
+use syn::{Data, DataEnum, Variant};
 
 use crate::regex;
-
-#[derive(Debug, Default)]
-pub struct TokenMeta {
-	pub idents: Vec<Ident>,
-	pub regex_match_impls: Vec<pm2::TokenStream>,
-	pub fields: Vec<Fields>,
-}
 
 pub struct VariantIdents {
 	pub ctor: Ident,
 	pub pattern: Ident,
 	pub get_pattern: Ident,
-	pub match_: Ident,
+	pub match_: Option<Ident>,
 }
 
 impl VariantIdents {
-	pub fn new(variant: &Ident) -> Self {
-		let ident = variant.to_string();
+	pub fn new(variant: &Variant) -> Self {
+		let ident = variant.ident.to_string();
 		let snake = ident.to_case(Case::Snake);
 		let screaming = ident.to_case(Case::ScreamingSnake);
 
@@ -51,7 +44,12 @@ impl VariantIdents {
 
 		let pattern = format_ident!("{}_PATTERN", screaming);
 		let get_pattern = format_ident!("{}_pattern", snake);
-		let match_ = format_ident!("match_{}", snake);
+
+		let match_ = if !regex::extract_pattern_attrs(variant).is_empty() {
+			Some(format_ident!("match_{}", snake))
+		} else {
+			None
+		};
 
 		Self {
 			ctor,
@@ -62,25 +60,23 @@ impl VariantIdents {
 	}
 }
 
-pub fn expand_variants(variants: &Punctuated<Variant, Comma>) -> TokenMeta {
-	variants
-		.iter()
-		.cloned()
-		.fold(TokenMeta::default(), |mut meta, variant| {
-			meta.regex_match_impls.push(regex::impls(&variant));
-			meta.idents.push(variant.ident);
-			meta.fields.push(variant.fields);
-
-			meta
-		})
+pub fn expand_variants(data: &Data) -> Vec<Variant> {
+	match data {
+		Data::Enum(DataEnum { variants, .. }) => variants.iter().cloned().collect(),
+		_ => unimplemented!(),
+	}
 }
 
-pub fn token_funcs(variant_idents: &[Ident]) -> (Vec<Ident>, Vec<Ident>) {
-	variant_idents
+pub fn token_funcs(variants: &[Variant]) -> (Vec<Ident>, Vec<Ident>) {
+	let (ctors, matchers): (Vec<_>, Vec<_>) = variants
 		.iter()
-		.map(|ident| {
-			let VariantIdents { ctor, match_, .. } = VariantIdents::new(ident);
+		.map(|variant| {
+			let VariantIdents { ctor, match_, .. } = VariantIdents::new(variant);
 			(ctor, match_)
 		})
-		.unzip()
+		.unzip();
+
+	let matchers = matchers.into_iter().flatten().collect();
+
+	(ctors, matchers)
 }

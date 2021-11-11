@@ -9,8 +9,14 @@ pub trait Lexer {
 
 	fn new(input: ArcStr) -> Self;
 	fn source(&self) -> ArcStr;
-	fn scan(&mut self) -> Vec<Self::Output>;
 	fn scan_token(&mut self) -> Option<Self::Output>;
+	fn scan(&mut self) -> Vec<Self::Output> {
+		let mut result = vec![];
+		while let Some(token) = self.scan_token() {
+			result.push(token);
+		}
+		result
+	}
 }
 
 pub trait Token

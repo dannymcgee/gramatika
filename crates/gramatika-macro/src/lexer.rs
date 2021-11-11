@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DataEnum, DeriveInput};
+use syn::{parse_macro_input, DeriveInput};
 
 use crate::common;
 
@@ -10,13 +10,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
 	let vis = &ast.vis;
 	let lexer_ident = format_ident!("Lexer");
 
-	let meta = match &ast.data {
-		Data::Enum(DataEnum { variants, .. }) => common::expand_variants(variants),
-		_ => unimplemented!(),
-	};
-
-	let variant_ident = &meta.idents;
-	let (ctor_ident, matcher_ident) = common::token_funcs(variant_ident);
+	let variants = common::expand_variants(&ast.data);
+	let (ctor_ident, matcher_ident) = common::token_funcs(&variants);
 
 	let result = quote! {
 		use ::gramatika::Lexer as _;
@@ -44,15 +39,6 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 			fn source(&self) -> ::gramatika::ArcStr {
 				::gramatika::ArcStr::clone(&self.input)
-			}
-
-			fn scan(&mut self) -> ::std::vec::Vec<Self::Output> {
-				let mut output = vec![];
-				while let Some(token) = self.scan_token() {
-					output.push(token);
-				}
-
-				output
 			}
 
 			fn scan_token(&mut self) -> Option<Self::Output> {

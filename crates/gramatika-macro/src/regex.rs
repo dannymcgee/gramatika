@@ -21,7 +21,7 @@ pub fn impls(variant: &Variant) -> pm2::TokenStream {
 			get_pattern,
 			match_,
 			..
-		} = VariantIdents::new(&variant.ident);
+		} = VariantIdents::new(variant);
 
 		let get_pattern_impl = quote! {
 			fn #get_pattern()
@@ -107,7 +107,7 @@ fn compile(pattern: &str) -> anyhow::Result<pm2::TokenStream> {
 	Ok(regex)
 }
 
-fn extract_pattern_attrs(variant: &Variant) -> Vec<Literal> {
+pub fn extract_pattern_attrs(variant: &Variant) -> Vec<Literal> {
 	variant
 		.attrs
 		.iter()

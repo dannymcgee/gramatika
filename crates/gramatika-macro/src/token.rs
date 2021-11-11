@@ -1,9 +1,9 @@
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Field, Fields, Type};
+use syn::{parse_macro_input, DeriveInput, Field, Fields, Type};
 
-use crate::common;
+use crate::{common, regex};
 
 pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let ast = parse_macro_input!(input as DeriveInput);
@@ -12,15 +12,15 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let kind_ident = format_ident!("{}Kind", ident);
 	let generics = &ast.generics;
 
-	let meta = match &ast.data {
-		Data::Enum(DataEnum { variants, .. }) => common::expand_variants(variants),
-		_ => unimplemented!(),
-	};
-	let variant_ident = &meta.idents;
-	let variant_fields = &meta.fields;
-	let variant_match_impl = &meta.regex_match_impls;
+	let variants = common::expand_variants(&ast.data);
+	let (ctor_ident, _) = common::token_funcs(&variants);
+	let variant_match_impl = variants.iter().map(regex::impls);
 
-	let (ctor_ident, _) = common::token_funcs(variant_ident);
+	let (variant_ident, variant_fields): (Vec<_>, Vec<_>) = variants
+		.iter()
+		.map(|v| (v.ident.clone(), v.fields.clone()))
+		.unzip();
+
 	let ctor_params = variant_fields
 		.iter()
 		.map(|fields| match fields {
