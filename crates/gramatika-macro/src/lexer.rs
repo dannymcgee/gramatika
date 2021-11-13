@@ -7,10 +7,12 @@ use crate::common;
 pub fn derive(input: TokenStream) -> TokenStream {
 	let ast = parse_macro_input!(input as DeriveInput);
 	let enum_ident = &ast.ident;
+	let kind_ident = format_ident!("{}Kind", enum_ident);
 	let vis = &ast.vis;
 	let lexer_ident = format_ident!("Lexer");
 
 	let variants = common::expand_variants(&ast.data);
+	let variant_ident = variants.iter().map(|v| v.ident.clone()).collect::<Vec<_>>();
 	let (ctor_ident, matcher_ident) = common::token_funcs(&variants);
 
 	let result = quote! {
@@ -43,13 +45,13 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 			fn scan_token(&mut self) -> Option<Self::Output> {
 				let result = None
-				#(
-					.or_else(|| #enum_ident::#matcher_ident(&self.remaining)
-						.map(|m| (m, #enum_ident::#ctor_ident as __TOKEN_CTOR)))
-				)*;
+				#(.or_else(|| #enum_ident::#matcher_ident(&self.remaining)))*;
 
 				match result {
-					Some(((start, end), ctor)) => {
+					Some((start, end, kind)) => {
+						let ctor = match kind {#(
+							#kind_ident::#variant_ident => #enum_ident::#ctor_ident as __TOKEN_CTOR
+						),*};
 						let lexeme = self.remaining.substr(start..end);
 
 						self.lookahead.character += end;

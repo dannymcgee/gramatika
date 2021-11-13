@@ -1,83 +1,186 @@
-use convert_case::{Case, Casing};
+use std::collections::HashMap;
+
 use itertools::Itertools;
-use pm2::{Ident, Literal, TokenTree};
+use pm2::{Group, Ident, Literal, TokenTree};
+use proc_macro as pm;
 use proc_macro2 as pm2;
-use quote::{format_ident, quote};
+use quote::quote;
 use regex_automata::RegexBuilder;
-use syn::Variant;
+use syn::{Attribute, Variant};
 
 use crate::common::VariantIdents;
 
-pub fn impls(variant: &Variant) -> pm2::TokenStream {
-	let patterns = extract_pattern_attrs(variant);
-	if !patterns.is_empty() {
-		let init = match init_expr(patterns) {
-			Ok(regex) => Some(regex),
-			Err(err) => panic!("{}", err),
-		};
-
-		let VariantIdents {
-			pattern,
-			get_pattern,
-			match_,
-			..
-		} = VariantIdents::new(variant);
-
-		let get_pattern_impl = quote! {
-			fn #get_pattern()
-			-> &'static ::std::sync::RwLock<
-				::gramatika::regex_automata::Regex<
-					::gramatika::regex_automata::SparseDFA<
-						&'static [u8], u32>>>
-			{
-				use ::gramatika::{
-					once_cell::sync::OnceCell,
-					regex_automata::{SparseDFA, Regex},
-				};
-				use ::std::sync::RwLock;
-
-				static #pattern: OnceCell<RwLock<Regex<SparseDFA<&'static [u8], u32>>>> = OnceCell::new();
-
-				#pattern.get_or_init(|| RwLock::new(#init))
+pub fn proc(input: pm::TokenStream) -> pm::TokenStream {
+	let pattern = pm2::TokenStream::from(input)
+		.into_iter()
+		.filter_map(|tt| match tt {
+			TokenTree::Literal(lit) => {
+				let inner = from_literal(&lit);
+				Some(format!("({})", inner))
 			}
+			_ => None,
+		})
+		.join("|");
+
+	compile(&pattern).unwrap().into()
+}
+
+pub fn token_impls(kind_ident: &Ident, variants: &[Variant]) -> Vec<pm2::TokenStream> {
+	let subset_map = find_subset_matchers(variants);
+	variants
+		.iter()
+		.map(|v| token_impl(kind_ident, v, &subset_map))
+		.collect()
+}
+
+fn token_impl(
+	kind_ident: &Ident,
+	variant: &Variant,
+	subset_matchers: &HashMap<Variant, Vec<Variant>>,
+) -> pm2::TokenStream {
+	let (_, patterns) = extract_variant_attrs(variant);
+	if patterns.is_empty() {
+		return quote! {};
+	}
+
+	let init = match init_expr(patterns) {
+		Ok(regex) => Some(regex),
+		Err(err) => panic!("{}", err),
+	}
+	.unwrap();
+
+	let idents = VariantIdents::new(variant);
+	let get_pattern_impl = get_pattern_impl(&idents, init);
+	let match_impl_body =
+		match_impl_body(kind_ident, &idents, subset_matchers.get(variant));
+
+	let match_impl = match idents.match_ {
+		Some(match_) => {
+			quote! {
+				pub fn #match_(input: &str) -> ::std::option::Option<(usize, usize, #kind_ident)> {
+					#match_impl_body
+				}
+			}
+		}
+		None => {
+			quote! {}
+		}
+	};
+
+	quote! {
+		#get_pattern_impl
+
+		#match_impl
+	}
+}
+
+fn get_pattern_impl(idents: &VariantIdents, init: pm2::TokenStream) -> pm2::TokenStream {
+	let pattern = &idents.pattern;
+	let get_pattern = &idents.get_pattern;
+	quote! {
+		fn #get_pattern()
+		-> &'static ::std::sync::RwLock<
+			::gramatika::regex_automata::Regex<
+				::gramatika::regex_automata::SparseDFA<
+					&'static [u8], u32>>>
+		{
+			use ::gramatika::{
+				once_cell::sync::OnceCell,
+				regex_automata::{SparseDFA, Regex},
+			};
+			use ::std::sync::RwLock;
+
+			static #pattern: OnceCell<RwLock<Regex<SparseDFA<&'static [u8], u32>>>> = OnceCell::new();
+
+			#pattern.get_or_init(|| RwLock::new(#init))
+		}
+	}
+}
+
+fn match_impl_body(
+	kind_ident: &Ident,
+	idents: &VariantIdents,
+	subset_matchers: Option<&Vec<Variant>>,
+) -> pm2::TokenStream {
+	let variant_ident = &idents.variant;
+	let get_pattern = &idents.get_pattern;
+
+	if let Some(subset_matchers) = subset_matchers {
+		let result_expr = quote! {
+			Some((start, end, #kind_ident::#variant_ident))
 		};
 
-		let match_impl_body = match find_superset_matcher(variant) {
-			Some(match_superset) => {
-				quote! {
-					Self::#match_superset(input).and_then(|(start, end)| {
+		let match_subsets =
+			subset_matchers
+				.iter()
+				.rev()
+				.fold(result_expr, |accum, variant| {
+					let variant_ident = &variant.ident;
+					let VariantIdents { get_pattern, .. } = VariantIdents::new(variant);
+					quote! {
 						match Self::#get_pattern()
 							.read()
 							.unwrap()
-							.find(input.as_bytes()) {
-								Some((s, e)) if s == start && e == end => {
-									Some((start, end))
-								}
-								_ => None,
+							.find(input.as_bytes())
+						{
+							Some((s, e)) if s == start && e == end => {
+								Some((start, end, #kind_ident::#variant_ident))
 							}
-					})
-				}
-			}
-			None => {
-				quote! {
-					Self::#get_pattern()
-						.read()
-						.unwrap()
-						.find(input.as_bytes())
-				}
-			}
-		};
+							_ => #accum
+						}
+					}
+				});
 
 		quote! {
-			#get_pattern_impl
-
-			pub fn #match_(input: &str) -> ::std::option::Option<(usize, usize)> {
-				#match_impl_body
+			match Self::#get_pattern()
+				.read()
+				.unwrap()
+				.find(input.as_bytes())
+			{
+				Some((start, end)) => #match_subsets
+				None => None,
 			}
 		}
 	} else {
-		quote! {}
+		quote! {
+			Self::#get_pattern()
+				.read()
+				.unwrap()
+				.find(input.as_bytes())
+				.map(|(start, end)| (start, end, #kind_ident::#variant_ident))
+		}
 	}
+}
+
+pub fn extract_variant_attrs(variant: &Variant) -> (Option<Ident>, Vec<Literal>) {
+	let mut subset = None;
+	let mut patterns = vec![];
+
+	for attr in variant.attrs.iter() {
+		match attr.path.get_ident() {
+			Some(ident) if ident == "pattern" => {
+				let lit = attr.tokens.clone().into_iter().find_map(|tt| match tt {
+					TokenTree::Literal(lit) => Some(lit),
+					_ => None,
+				});
+				if let Some(lit) = lit {
+					patterns.push(lit)
+				}
+			}
+			Some(ident) if ident == "subset_of" => {
+				subset = attr.tokens.clone().into_iter().find_map(|tt| match tt {
+					TokenTree::Group(g) => match g.stream().into_iter().last() {
+						Some(TokenTree::Ident(ident)) => Some(ident),
+						_ => None,
+					},
+					_ => None,
+				});
+			}
+			_ => {}
+		}
+	}
+
+	(subset, patterns)
 }
 
 fn compile(pattern: &str) -> anyhow::Result<pm2::TokenStream> {
@@ -101,28 +204,10 @@ fn compile(pattern: &str) -> anyhow::Result<pm2::TokenStream> {
 		let fwd = unsafe { SparseDFA::from_bytes(#fwd) };
 		let rev = unsafe { SparseDFA::from_bytes(#rev) };
 
-		Regex::from_dfas(fwd, rev)
+		Regex::<SparseDFA<&[u8], u32>>::from_dfas(fwd, rev)
 	}};
 
 	Ok(regex)
-}
-
-pub fn extract_pattern_attrs(variant: &Variant) -> Vec<Literal> {
-	variant
-		.attrs
-		.iter()
-		.filter_map(|attr| {
-			let ident = attr.path.get_ident();
-			if ident.is_some() && *ident.unwrap() == "pattern" {
-				attr.tokens.clone().into_iter().find_map(|tt| match tt {
-					TokenTree::Literal(lit) => Some(lit),
-					_ => None,
-				})
-			} else {
-				None
-			}
-		})
-		.collect()
 }
 
 fn init_expr(patterns: Vec<Literal>) -> anyhow::Result<pm2::TokenStream> {
@@ -173,22 +258,41 @@ fn from_literal(lit: &Literal) -> String {
 	inner.into()
 }
 
-fn find_superset_matcher(variant: &Variant) -> Option<Ident> {
-	variant.attrs.iter().find_map(|attr| {
-		let ident = attr.path.get_ident();
-		if ident.is_some() && *ident.unwrap() == "subset_of" {
-			attr.tokens.clone().into_iter().find_map(|tt| match tt {
-				TokenTree::Group(g) => match g.stream().into_iter().last() {
-					Some(TokenTree::Ident(ident)) => {
-						let snake = ident.to_string().to_case(Case::Snake);
-						Some(format_ident!("match_{}", snake))
-					}
-					_ => None,
-				},
-				_ => None,
-			})
-		} else {
-			None
-		}
-	})
+fn find_subset_matchers(variants: &[Variant]) -> HashMap<Variant, Vec<Variant>> {
+	variants
+		.iter()
+		.filter_map(|variant| {
+			let subsetters = variants
+				.iter()
+				.filter_map(|v| {
+					let extract_subset_variant =
+						|group: Group| match group.stream().into_iter().last() {
+							Some(TokenTree::Ident(ident)) if ident == variant.ident => {
+								Some(v.clone())
+							}
+							_ => None,
+						};
+
+					let find_subset_attr = |attr: &Attribute| match attr.path.get_ident()
+					{
+						Some(ident) if ident == "subset_of" => {
+							attr.tokens.clone().into_iter().find_map(|tt| match tt {
+								TokenTree::Group(g) => extract_subset_variant(g),
+								_ => None,
+							})
+						}
+						_ => None,
+					};
+
+					v.attrs.iter().find_map(find_subset_attr)
+				})
+				.collect::<Vec<_>>();
+
+			if !subsetters.is_empty() {
+				Some((variant.clone(), subsetters))
+			} else {
+				None
+			}
+		})
+		.collect()
 }

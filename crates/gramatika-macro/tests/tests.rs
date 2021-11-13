@@ -7,4 +7,5 @@ fn tests() {
 	t.pass("tests/token.rs");
 	t.pass("tests/pattern.rs");
 	t.pass("tests/lexer.rs");
+	t.pass("tests/regex.rs");
 }

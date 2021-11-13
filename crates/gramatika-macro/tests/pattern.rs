@@ -33,7 +33,6 @@ enum Token {
 }
 
 fn main() {
-	assert!(Token::match_keyword("let").is_some());
 	assert!(Token::match_ident("foo").is_some());
 	assert!(Token::match_punct(";").is_some());
 	assert!(Token::match_operator("*").is_some());

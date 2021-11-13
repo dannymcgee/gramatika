@@ -97,6 +97,7 @@ use gramatika::{Lexer as _, ParseStreamer, Span, Substr};
 
 #[derive(Debug, Token, Lexer, PartialEq)]
 enum Token {
+	#[subset_of(Ident)]
 	#[pattern = "let|var|if|for|while|return"]
 	Keyword(Substr, Span),
 

@@ -14,7 +14,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 
 	let variants = common::expand_variants(&ast.data);
 	let (ctor_ident, _) = common::token_funcs(&variants);
-	let variant_match_impl = variants.iter().map(regex::impls);
+	let variant_match_impl = regex::token_impls(&kind_ident, &variants);
 
 	let (variant_ident, variant_fields): (Vec<_>, Vec<_>) = variants
 		.iter()

@@ -6,6 +6,7 @@ use syn::{Data, DataEnum, Variant};
 use crate::regex;
 
 pub struct VariantIdents {
+	pub variant: Ident,
 	pub ctor: Ident,
 	pub pattern: Ident,
 	pub get_pattern: Ident,
@@ -45,13 +46,15 @@ impl VariantIdents {
 		let pattern = format_ident!("{}_PATTERN", screaming);
 		let get_pattern = format_ident!("{}_pattern", snake);
 
-		let match_ = if !regex::extract_pattern_attrs(variant).is_empty() {
+		let (subset, patterns) = regex::extract_variant_attrs(variant);
+		let match_ = if !patterns.is_empty() && subset.is_none() {
 			Some(format_ident!("match_{}", snake))
 		} else {
 			None
 		};
 
 		Self {
+			variant: variant.ident.clone(),
 			ctor,
 			pattern,
 			get_pattern,
