@@ -2,8 +2,9 @@ use std::fmt;
 
 use arcstr::ArcStr;
 
-use crate::Span;
+use crate::{DebugLisp, DebugLispStruct, Span};
 
+#[derive(Clone)]
 pub struct SpannedError {
 	pub message: String,
 	pub source: ArcStr,
@@ -67,6 +68,18 @@ impl fmt::Debug for SpannedError {
 			.field("message", &self.message)
 			.field("source", &self.source)
 			.field("span", &self.span)
+			.finish()
+	}
+}
+
+impl DebugLisp for SpannedError {
+	fn fmt(&self, f: &mut fmt::Formatter, indent: usize) -> fmt::Result {
+		DebugLispStruct::new(f, indent, "SpannedError")
+			.field("message", &self.message)
+			.optional_field(
+				"span",
+				self.span.as_ref().map(|span| span as &dyn DebugLisp),
+			)
 			.finish()
 	}
 }
