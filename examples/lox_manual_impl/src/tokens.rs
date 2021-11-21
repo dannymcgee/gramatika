@@ -1,16 +1,20 @@
 #![allow(unused_macros, dead_code)]
 
-use std::fmt;
+use std::{fmt, sync::RwLock};
 
 use arcstr::Substr;
-use gramatika::{DebugLisp, Span, Spanned, Token as _};
-use lazy_static::lazy_static;
-use regex::{Match, Regex};
+use gramatika::{
+	once_cell::sync::OnceCell,
+	regex_automata::{Regex, RegexBuilder, SparseDFA},
+	DebugLisp, Span, Spanned, Token as _,
+};
 
 #[derive(PartialEq)]
 pub enum Token {
+	// //.*
+	Comment(Substr, Span),
 	// and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while
-	Keyword(Keyword, Span),
+	Keyword(Substr, Span),
 	// [a-zA-Z_][a-zA-Z0-9_]*
 	Ident(Substr, Span),
 	// [(){}]
@@ -26,47 +30,9 @@ pub enum Token {
 	StrLit(Substr, Span),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Keyword {
-	And,
-	Class,
-	Else,
-	False,
-	For,
-	Fun,
-	If,
-	Nil,
-	Or,
-	Print,
-	Return,
-	Super,
-	This,
-	True,
-	Var,
-	While,
-}
-
-impl Keyword {
-	pub const AND: Substr = arcstr::literal_substr!("and");
-	pub const CLASS: Substr = arcstr::literal_substr!("class");
-	pub const ELSE: Substr = arcstr::literal_substr!("else");
-	pub const FALSE: Substr = arcstr::literal_substr!("false");
-	pub const FOR: Substr = arcstr::literal_substr!("for");
-	pub const FUN: Substr = arcstr::literal_substr!("fun");
-	pub const IF: Substr = arcstr::literal_substr!("if");
-	pub const NIL: Substr = arcstr::literal_substr!("nil");
-	pub const OR: Substr = arcstr::literal_substr!("or");
-	pub const PRINT: Substr = arcstr::literal_substr!("print");
-	pub const RETURN: Substr = arcstr::literal_substr!("return");
-	pub const SUPER: Substr = arcstr::literal_substr!("super");
-	pub const THIS: Substr = arcstr::literal_substr!("this");
-	pub const TRUE: Substr = arcstr::literal_substr!("true");
-	pub const VAR: Substr = arcstr::literal_substr!("var");
-	pub const WHILE: Substr = arcstr::literal_substr!("while");
-}
-
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TokenKind {
+	Comment,
 	Keyword,
 	Ident,
 	Brace,
@@ -76,27 +42,33 @@ pub enum TokenKind {
 	StrLit,
 }
 
+macro_rules! hash_set {
+	($($elem:path),+ $(,)?) => {{
+		let mut set = ::std::collections::HashSet::with_capacity(1);
+		$( set.insert($elem); )+
+		set
+	}};
+	() => {
+		::std::collections::HashSet::with_capacity(1)
+	};
+}
+
+impl TokenKind {
+	pub(crate) fn discards() -> &'static ::std::collections::HashSet<TokenKind> {
+		use ::std::collections::HashSet;
+
+		static DISCARDS: OnceCell<HashSet<TokenKind>> = OnceCell::new();
+
+		DISCARDS.get_or_init(|| hash_set![TokenKind::Comment])
+	}
+}
+
+#[allow(clippy::type_complexity)]
 impl Token {
 	pub fn as_inner(&self) -> (Substr, Span) {
 		match self {
-			Token::Keyword(const_kw, span) => match *const_kw {
-				Keyword::And => (Keyword::AND, *span),
-				Keyword::Class => (Keyword::CLASS, *span),
-				Keyword::Else => (Keyword::ELSE, *span),
-				Keyword::False => (Keyword::FALSE, *span),
-				Keyword::For => (Keyword::FOR, *span),
-				Keyword::Fun => (Keyword::FUN, *span),
-				Keyword::If => (Keyword::IF, *span),
-				Keyword::Nil => (Keyword::NIL, *span),
-				Keyword::Or => (Keyword::OR, *span),
-				Keyword::Print => (Keyword::PRINT, *span),
-				Keyword::Return => (Keyword::RETURN, *span),
-				Keyword::Super => (Keyword::SUPER, *span),
-				Keyword::This => (Keyword::THIS, *span),
-				Keyword::True => (Keyword::TRUE, *span),
-				Keyword::Var => (Keyword::VAR, *span),
-				Keyword::While => (Keyword::WHILE, *span),
-			},
+			Token::Comment(lexeme, span) => (lexeme.clone(), *span),
+			Token::Keyword(lexeme, span) => (lexeme.clone(), *span),
 			Token::Ident(lexeme, span) => (lexeme.clone(), *span),
 			Token::Brace(lexeme, span) => (lexeme.clone(), *span),
 			Token::Punct(lexeme, span) => (lexeme.clone(), *span),
@@ -107,28 +79,11 @@ impl Token {
 	}
 
 	// Constructors
+	pub fn comment(lexeme: Substr, span: Span) -> Self {
+		Self::Comment(lexeme, span)
+	}
 	pub fn keyword(lexeme: Substr, span: Span) -> Self {
-		let const_kw = match lexeme {
-			x if x == Keyword::AND => Keyword::And,
-			x if x == Keyword::CLASS => Keyword::Class,
-			x if x == Keyword::ELSE => Keyword::Else,
-			x if x == Keyword::FALSE => Keyword::False,
-			x if x == Keyword::FOR => Keyword::For,
-			x if x == Keyword::FUN => Keyword::Fun,
-			x if x == Keyword::IF => Keyword::If,
-			x if x == Keyword::NIL => Keyword::Nil,
-			x if x == Keyword::OR => Keyword::Or,
-			x if x == Keyword::PRINT => Keyword::Print,
-			x if x == Keyword::RETURN => Keyword::Return,
-			x if x == Keyword::SUPER => Keyword::Super,
-			x if x == Keyword::THIS => Keyword::This,
-			x if x == Keyword::TRUE => Keyword::True,
-			x if x == Keyword::VAR => Keyword::Var,
-			x if x == Keyword::WHILE => Keyword::While,
-			other => panic!("Invalid keyword: `{}`", other),
-		};
-
-		Self::Keyword(const_kw, span)
+		Self::Keyword(lexeme, span)
 	}
 	pub fn ident(lexeme: Substr, span: Span) -> Self {
 		Self::Ident(lexeme, span)
@@ -149,36 +104,193 @@ impl Token {
 		Self::StrLit(lexeme, span)
 	}
 
+	// Pattern getters
+	fn comment_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse("//.*")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+	fn keyword_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse("and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+	fn ident_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse("[a-zA-Z_][a-zA-Z0-9_]*")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+	fn brace_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse(r"[(){}]")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+	fn punct_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse(r"[,.;]")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+	fn operator_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse(r"([=!<>]=?|[-+*/])")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+	fn num_lit_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse(r"[0-9]+")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+	fn str_lit_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(|| {
+			let re = RegexBuilder::new()
+				.anchored(true)
+				.build_sparse("\"[^\"]*\"")
+				.unwrap();
+
+			let fwd = re.forward().to_u32().unwrap();
+			let rev = re.reverse().to_u32().unwrap();
+
+			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
+		})
+	}
+
 	// Matchers
-	pub fn match_brace(input: &str) -> Option<Match> {
-		lazy_static! {
-			static ref PATTERN: Regex = Regex::new(r"^([(){}])").unwrap();
-		}
-		PATTERN.find(input)
+	pub fn match_comment(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::comment_pattern()
+			.read()
+			.unwrap()
+			.find(input.as_bytes())
+			.map(|(start, end)| (start, end, TokenKind::Comment))
 	}
-	pub fn match_punct(input: &str) -> Option<Match> {
-		lazy_static! {
-			static ref PATTERN: Regex = Regex::new("^([,.;])").unwrap();
+	pub fn match_ident(input: &str) -> Option<(usize, usize, TokenKind)> {
+		match Self::ident_pattern().read().unwrap().find(input.as_bytes()) {
+			Some((start, end)) => match Self::keyword_pattern()
+				.read()
+				.unwrap()
+				.find(input.as_bytes())
+			{
+				Some((s, e)) if s == start && e == end => {
+					Some((start, end, TokenKind::Keyword))
+				}
+				_ => Some((start, end, TokenKind::Ident)),
+			},
+			None => None,
 		}
-		PATTERN.find(input)
 	}
-	pub fn match_operator(input: &str) -> Option<Match> {
-		lazy_static! {
-			static ref PATTERN: Regex = Regex::new(r"^([=!<>]=?|[-+*/])").unwrap();
-		}
-		PATTERN.find(input)
+	pub fn match_brace(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::brace_pattern()
+			.read()
+			.unwrap()
+			.find(input.as_bytes())
+			.map(|(start, end)| (start, end, TokenKind::Brace))
 	}
-	pub fn match_num_lit(input: &str) -> Option<Match> {
-		lazy_static! {
-			static ref PATTERN: Regex = Regex::new("^([0-9]+)").unwrap();
-		}
-		PATTERN.find(input)
+	pub fn match_punct(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::punct_pattern()
+			.read()
+			.unwrap()
+			.find(input.as_bytes())
+			.map(|(start, end)| (start, end, TokenKind::Punct))
 	}
-	pub fn match_str_lit(input: &str) -> Option<Match> {
-		lazy_static! {
-			static ref PATTERN: Regex = Regex::new(r#"^("[^"]*")"#).unwrap();
-		}
-		PATTERN.find(input)
+	pub fn match_operator(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::operator_pattern()
+			.read()
+			.unwrap()
+			.find(input.as_bytes())
+			.map(|(start, end)| (start, end, TokenKind::Operator))
+	}
+	pub fn match_num_lit(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::num_lit_pattern()
+			.read()
+			.unwrap()
+			.find(input.as_bytes())
+			.map(|(start, end)| (start, end, TokenKind::NumLit))
+	}
+	pub fn match_str_lit(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::str_lit_pattern()
+			.read()
+			.unwrap()
+			.find(input.as_bytes())
+			.map(|(start, end)| (start, end, TokenKind::StrLit))
 	}
 }
 
@@ -214,53 +326,17 @@ macro_rules! ident {
 }
 #[macro_export]
 macro_rules! keyword {
-	(and) => {
-		Token::Keyword(Keyword::And, ::gramatika::Span::default())
+	($lexeme:literal) => {
+		Token::keyword(
+			::gramatika::arcstr::literal_substr!($lexeme),
+			::gramatika::Span::default(),
+		)
 	};
-	(class) => {
-		Token::Keyword(Keyword::Class, ::gramatika::Span::default())
-	};
-	(else) => {
-		Token::Keyword(Keyword::Else, ::gramatika::Span::default())
-	};
-	(false) => {
-		Token::Keyword(Keyword::False, ::gramatika::Span::default())
-	};
-	(for) => {
-		Token::Keyword(Keyword::For, ::gramatika::Span::default())
-	};
-	(fun) => {
-		Token::Keyword(Keyword::Fun, ::gramatika::Span::default())
-	};
-	(if) => {
-		Token::Keyword(Keyword::If, ::gramatika::Span::default())
-	};
-	(nil) => {
-		Token::Keyword(Keyword::Nil, ::gramatika::Span::default())
-	};
-	(or) => {
-		Token::Keyword(Keyword::Or, ::gramatika::Span::default())
-	};
-	(print) => {
-		Token::Keyword(Keyword::Print, ::gramatika::Span::default())
-	};
-	(return) => {
-		Token::Keyword(Keyword::Return, ::gramatika::Span::default())
-	};
-	(super) => {
-		Token::Keyword(Keyword::Super, ::gramatika::Span::default())
-	};
-	(this) => {
-		Token::Keyword(Keyword::This, ::gramatika::Span::default())
-	};
-	(true) => {
-		Token::Keyword(Keyword::True, ::gramatika::Span::default())
-	};
-	(var) => {
-		Token::Keyword(Keyword::Var, ::gramatika::Span::default())
-	};
-	(while) => {
-		Token::Keyword(Keyword::While, ::gramatika::Span::default())
+	($lexeme:tt) => {
+		Token::keyword(
+			::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
+			::gramatika::Span::default(),
+		)
 	};
 }
 #[macro_export]
@@ -330,7 +406,8 @@ impl Clone for Token {
 		use Token::*;
 
 		match self {
-			Keyword(const_kw, span) => Keyword(*const_kw, *span),
+			Comment(lexeme, span) => Comment(lexeme.clone(), *span),
+			Keyword(lexeme, span) => Keyword(lexeme.clone(), *span),
 			Ident(lexeme, span) => Ident(lexeme.clone(), *span),
 			Brace(lexeme, span) => Brace(lexeme.clone(), *span),
 			Punct(lexeme, span) => Punct(lexeme.clone(), *span),
@@ -352,6 +429,7 @@ impl gramatika::Token for Token {
 		use Token::*;
 
 		match self {
+			Comment(_, _) => TokenKind::Comment,
 			Keyword(_, _) => TokenKind::Keyword,
 			Ident(_, _) => TokenKind::Ident,
 			Brace(_, _) => TokenKind::Brace,
@@ -364,28 +442,8 @@ impl gramatika::Token for Token {
 
 	fn as_matchable(&self) -> (Self::Kind, &str, Span) {
 		match self {
-			Token::Keyword(const_kw, span) => {
-				let kind = TokenKind::Keyword;
-
-				match const_kw {
-					Keyword::And => (kind, "and", *span),
-					Keyword::Class => (kind, "class", *span),
-					Keyword::Else => (kind, "else", *span),
-					Keyword::False => (kind, "false", *span),
-					Keyword::For => (kind, "for", *span),
-					Keyword::Fun => (kind, "fun", *span),
-					Keyword::If => (kind, "if", *span),
-					Keyword::Nil => (kind, "nil", *span),
-					Keyword::Or => (kind, "or", *span),
-					Keyword::Print => (kind, "print", *span),
-					Keyword::Return => (kind, "return", *span),
-					Keyword::Super => (kind, "super", *span),
-					Keyword::This => (kind, "this", *span),
-					Keyword::True => (kind, "true", *span),
-					Keyword::Var => (kind, "var", *span),
-					Keyword::While => (kind, "while", *span),
-				}
-			}
+			Token::Comment(lex, span) => (TokenKind::Comment, lex.as_str(), *span),
+			Token::Keyword(lex, span) => (TokenKind::Keyword, lex.as_str(), *span),
 			Token::Ident(lex, span) => (TokenKind::Ident, lex.as_str(), *span),
 			Token::Brace(lex, span) => (TokenKind::Brace, lex.as_str(), *span),
 			Token::Punct(lex, span) => (TokenKind::Punct, lex.as_str(), *span),

@@ -1,4 +1,4 @@
-use gramatika::{Parse, ParseStreamer, Result, SpannedError};
+use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::{
 	brace,
@@ -7,7 +7,7 @@ use crate::{
 	keyword,
 	parse::ParseStream,
 	punct,
-	tokens::{Keyword, Token},
+	tokens::{Token, TokenKind},
 };
 
 #[derive(DebugLisp)]
@@ -80,25 +80,17 @@ impl Parse for Stmt {
 	type Stream = ParseStream;
 
 	fn parse(input: &mut Self::Stream) -> Result<Self> {
+		use TokenKind::*;
+
 		match input.peek() {
-			Some(token) => match token {
-				Token::Keyword(Keyword::Class | Keyword::Fun | Keyword::Var, _) => {
-					Ok(Stmt::Decl(input.parse::<Decl>()?))
-				}
-				Token::Keyword(Keyword::For, _) => {
-					Ok(Stmt::For(input.parse::<ForStmt>()?))
-				}
-				Token::Keyword(Keyword::If, _) => Ok(Stmt::If(input.parse::<IfStmt>()?)),
-				Token::Keyword(Keyword::Print, _) => {
-					Ok(Stmt::Print(input.parse::<PrintStmt>()?))
-				}
-				Token::Keyword(Keyword::Return, _) => {
-					Ok(Stmt::Return(input.parse::<ReturnStmt>()?))
-				}
-				Token::Keyword(Keyword::While, _) => {
-					Ok(Stmt::While(input.parse::<WhileStmt>()?))
-				}
-				Token::Brace(lex, _) if lex == "{" => {
+			Some(token) => match token.as_matchable() {
+				(Keyword, "class" | "fun" | "var", _) => Ok(Stmt::Decl(input.parse()?)),
+				(Keyword, "for", _) => Ok(Stmt::For(input.parse()?)),
+				(Keyword, "if", _) => Ok(Stmt::If(input.parse()?)),
+				(Keyword, "print", _) => Ok(Stmt::Print(input.parse()?)),
+				(Keyword, "return", _) => Ok(Stmt::Return(input.parse()?)),
+				(Keyword, "while", _) => Ok(Stmt::While(input.parse()?)),
+				(Brace, "{", _) => {
 					input.consume(brace!["{"])?;
 
 					let mut stmts = vec![];

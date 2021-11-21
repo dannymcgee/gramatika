@@ -6,7 +6,7 @@ mod lexer;
 mod regex;
 mod token;
 
-#[proc_macro_derive(Token, attributes(pattern, subset_of))]
+#[proc_macro_derive(Token, attributes(pattern, subset_of, discard))]
 pub fn derive_token(input: TokenStream) -> TokenStream {
 	token::derive(input)
 }

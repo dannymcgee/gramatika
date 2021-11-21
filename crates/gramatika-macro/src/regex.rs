@@ -8,7 +8,7 @@ use quote::quote;
 use regex_automata::RegexBuilder;
 use syn::{Attribute, Variant};
 
-use crate::common::VariantIdents;
+use crate::common::{self, VariantAttrs, VariantIdents};
 
 pub fn proc(input: pm::TokenStream) -> pm::TokenStream {
 	let pattern = pm2::TokenStream::from(input)
@@ -38,7 +38,7 @@ fn token_impl(
 	variant: &Variant,
 	subset_matchers: &HashMap<Variant, Vec<Variant>>,
 ) -> pm2::TokenStream {
-	let (_, patterns) = extract_variant_attrs(variant);
+	let VariantAttrs { patterns, .. } = common::extract_variant_attrs(variant);
 	if patterns.is_empty() {
 		return quote! {};
 	}
@@ -150,37 +150,6 @@ fn match_impl_body(
 				.map(|(start, end)| (start, end, #kind_ident::#variant_ident))
 		}
 	}
-}
-
-pub fn extract_variant_attrs(variant: &Variant) -> (Option<Ident>, Vec<Literal>) {
-	let mut subset = None;
-	let mut patterns = vec![];
-
-	for attr in variant.attrs.iter() {
-		match attr.path.get_ident() {
-			Some(ident) if ident == "pattern" => {
-				let lit = attr.tokens.clone().into_iter().find_map(|tt| match tt {
-					TokenTree::Literal(lit) => Some(lit),
-					_ => None,
-				});
-				if let Some(lit) = lit {
-					patterns.push(lit)
-				}
-			}
-			Some(ident) if ident == "subset_of" => {
-				subset = attr.tokens.clone().into_iter().find_map(|tt| match tt {
-					TokenTree::Group(g) => match g.stream().into_iter().last() {
-						Some(TokenTree::Ident(ident)) => Some(ident),
-						_ => None,
-					},
-					_ => None,
-				});
-			}
-			_ => {}
-		}
-	}
-
-	(subset, patterns)
 }
 
 fn compile(pattern: &str) -> anyhow::Result<pm2::TokenStream> {

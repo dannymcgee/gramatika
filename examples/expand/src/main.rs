@@ -8,6 +8,10 @@ use gramatika::{Lexer as _, Span, Substr};
 
 #[derive(Debug, Token, Lexer, PartialEq)]
 enum Token {
+	#[discard]
+	#[pattern = "//.*"]
+	Comment(Substr, Span),
+
 	#[subset_of(Ident)]
 	#[pattern = "and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while"]
 	Keyword(Substr, Span),

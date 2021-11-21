@@ -1,9 +1,7 @@
 use convert_case::{Case, Casing};
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Literal, TokenTree};
 use quote::format_ident;
 use syn::{Data, DataEnum, Variant};
-
-use crate::regex;
 
 pub struct VariantIdents {
 	pub variant: Ident,
@@ -46,7 +44,10 @@ impl VariantIdents {
 		let pattern = format_ident!("{}_PATTERN", screaming);
 		let get_pattern = format_ident!("{}_pattern", snake);
 
-		let (subset, patterns) = regex::extract_variant_attrs(variant);
+		let VariantAttrs {
+			subset, patterns, ..
+		} = extract_variant_attrs(variant);
+
 		let match_ = if !patterns.is_empty() && subset.is_none() {
 			Some(format_ident!("match_{}", snake))
 		} else {
@@ -67,6 +68,51 @@ pub fn expand_variants(data: &Data) -> Vec<Variant> {
 	match data {
 		Data::Enum(DataEnum { variants, .. }) => variants.iter().cloned().collect(),
 		_ => unimplemented!(),
+	}
+}
+
+pub struct VariantAttrs {
+	pub subset: Option<Ident>,
+	pub patterns: Vec<Literal>,
+	pub discard: bool,
+}
+
+pub fn extract_variant_attrs(variant: &Variant) -> VariantAttrs {
+	let mut subset = None;
+	let mut patterns = vec![];
+	let mut discard = false;
+
+	for attr in variant.attrs.iter() {
+		match attr.path.get_ident() {
+			Some(ident) if ident == "pattern" => {
+				let lit = attr.tokens.clone().into_iter().find_map(|tt| match tt {
+					TokenTree::Literal(lit) => Some(lit),
+					_ => None,
+				});
+				if let Some(lit) = lit {
+					patterns.push(lit)
+				}
+			}
+			Some(ident) if ident == "subset_of" => {
+				subset = attr.tokens.clone().into_iter().find_map(|tt| match tt {
+					TokenTree::Group(g) => match g.stream().into_iter().last() {
+						Some(TokenTree::Ident(ident)) => Some(ident),
+						_ => None,
+					},
+					_ => None,
+				});
+			}
+			Some(ident) if ident == "discard" => {
+				discard = true;
+			}
+			_ => {}
+		}
+	}
+
+	VariantAttrs {
+		subset,
+		patterns,
+		discard,
 	}
 }
 

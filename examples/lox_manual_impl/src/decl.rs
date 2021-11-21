@@ -1,4 +1,4 @@
-use gramatika::{Parse, ParseStreamer, Result, Spanned, SpannedError};
+use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::{
 	brace,
@@ -6,7 +6,7 @@ use crate::{
 	operator,
 	parse::ParseStream,
 	punct,
-	tokens::{Keyword, Token, TokenKind},
+	tokens::{Token, TokenKind},
 };
 
 #[derive(DebugLisp)]
@@ -39,21 +39,19 @@ impl Parse for Decl {
 	type Stream = ParseStream;
 
 	fn parse(input: &mut Self::Stream) -> Result<Self> {
+		use TokenKind::*;
+
 		match input.next() {
-			Some(Token::Keyword(Keyword::Class, _)) => {
-				Ok(Decl::Class(input.parse::<ClassDecl>()?))
-			}
-			Some(Token::Keyword(Keyword::Fun, _)) => {
-				Ok(Decl::Fun(input.parse::<FunDecl>()?))
-			}
-			Some(Token::Keyword(Keyword::Var, _)) => {
-				Ok(Decl::Variable(input.parse::<VariableDecl>()?))
-			}
-			Some(other) => Err(SpannedError {
-				message: "Expected `class`, `fun`, or `var`".into(),
-				source: input.source(),
-				span: Some(other.span()),
-			}),
+			Some(token) => match token.as_matchable() {
+				(Keyword, "class", _) => Ok(Decl::Class(input.parse()?)),
+				(Keyword, "fun", _) => Ok(Decl::Fun(input.parse()?)),
+				(Keyword, "var", _) => Ok(Decl::Variable(input.parse()?)),
+				(_, _, span) => Err(SpannedError {
+					message: "Expected `class`, `fun`, or `var`".into(),
+					source: input.source(),
+					span: Some(span),
+				}),
+			},
 			None => Err(SpannedError {
 				message: "Unexpected end of input".into(),
 				source: input.source(),

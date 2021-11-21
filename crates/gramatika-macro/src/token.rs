@@ -1,9 +1,13 @@
+use itertools::Itertools;
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, DeriveInput, Field, Fields, Type};
 
-use crate::{common, regex};
+use crate::{
+	common::{self, VariantAttrs},
+	regex,
+};
 
 pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let ast = parse_macro_input!(input as DeriveInput);
@@ -20,6 +24,20 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		.iter()
 		.map(|v| (v.ident.clone(), v.fields.clone()))
 		.unzip();
+
+	let discarded_kinds = variants
+		.iter()
+		.enumerate()
+		.filter_map(|(idx, var)| {
+			let VariantAttrs { discard, .. } = common::extract_variant_attrs(var);
+			if discard {
+				Some(variant_ident[idx].clone())
+			} else {
+				None
+			}
+		})
+		.collect_vec();
+	let discards_len = discarded_kinds.len();
 
 	let ctor_params = variant_fields
 		.iter()
@@ -56,6 +74,30 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 		#vis enum #kind_ident {
 			#(#variant_ident),*
+		}
+
+		macro_rules! hash_set {
+			($($elem:path),+ $(,)?) => {{
+				let mut set = ::std::collections::HashSet::with_capacity(#discards_len);
+				$( set.insert($elem); )+
+				set
+			}};
+			() => {
+				::std::collections::HashSet::with_capacity(#discards_len)
+			};
+		}
+
+		impl #kind_ident {
+			fn discards() -> &'static ::std::collections::HashSet<#kind_ident> {
+				use ::std::collections::HashSet;
+				use ::gramatika::once_cell::sync::OnceCell;
+
+				static DISCARDS: OnceCell<HashSet<#kind_ident>> = OnceCell::new();
+
+				DISCARDS.get_or_init(|| hash_set![
+					#( #kind_ident::#discarded_kinds, )*
+				])
+			}
 		}
 
 		impl#generics #ident#generics {

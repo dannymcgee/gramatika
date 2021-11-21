@@ -1,7 +1,4 @@
-use crate::{
-	lexer::Lexer,
-	tokens::{Keyword, Token},
-};
+use crate::{lexer::Lexer, tokens::Token};
 use gramatika::Lexer as _;
 
 macro_rules! span {
@@ -17,7 +14,7 @@ fn it_works() {
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Token::Keyword(Keyword::Var, span![0:0...0:3]),
+		Token::Keyword("var".into(), span![0:0...0:3]),
 		Token::Ident("foo".into(), span![0:4...0:7]),
 		Token::Operator("=".into(), span![0:8...0:9]),
 		Token::NumLit("2".into(), span![0:10...0:11]),
@@ -39,7 +36,7 @@ var bar = foo + foo;
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Token::Keyword(Keyword::Var, span![1:0...1:3]),
+		Token::Keyword("var".into(), span![1:0...1:3]),
 		Token::Ident("foo".into(), span![1:4...1:7]),
 		Token::Operator("=".into(), span![1:8...1:9]),
 		Token::NumLit("2".into(), span![1:10...1:11]),
@@ -47,7 +44,7 @@ var bar = foo + foo;
 		Token::NumLit("2".into(), span![1:14...1:15]),
 		Token::Punct(";".into(), span![1:15...1:16]),
 		// ...
-		Token::Keyword(Keyword::Var, span![2:0...2:3]),
+		Token::Keyword("var".into(), span![2:0...2:3]),
 		Token::Ident("bar".into(), span![2:4...2:7]),
 		Token::Operator("=".into(), span![2:8...2:9]),
 		Token::Ident("foo".into(), span![2:10...2:13]),

@@ -65,7 +65,11 @@ pub fn derive(input: TokenStream) -> TokenStream {
 						self.remaining = self.remaining.substr(end..);
 						self.current = self.lookahead;
 
-						Some(token)
+						if #kind_ident::discards().contains(&kind) {
+							self.scan_token()
+						} else {
+							Some(token)
+						}
 					}
 					None => {
 						self.remaining.clone().chars().next().and_then(|c| match c {

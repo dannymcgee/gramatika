@@ -1,11 +1,11 @@
-use gramatika::{Parse, ParseStreamer, Result, Spanned, SpannedError};
+use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::{
 	brace, keyword, operator,
 	parse::ParseStream,
 	punct,
 	stmt::Stmt,
-	tokens::{Keyword, Token, TokenKind},
+	tokens::{Token, TokenKind},
 };
 
 #[derive(DebugLisp)]
@@ -276,13 +276,13 @@ impl RecursiveDescent for ParseStream {
 	}
 
 	fn primary(&mut self) -> Result<Expr> {
+		use TokenKind::*;
+
 		match self.next() {
-			Some(token) => match token.clone() {
-				Token::NumLit(_, _) | Token::StrLit(_, _) => Ok(Expr::Literal(token)),
-				Token::Keyword(Keyword::True | Keyword::False | Keyword::Nil, _) => {
-					Ok(Expr::Literal(token))
-				}
-				Token::Keyword(Keyword::Super, _) => {
+			Some(token) => match token.as_matchable() {
+				(NumLit | StrLit, _, _) => Ok(Expr::Literal(token)),
+				(Keyword, "true" | "false" | "nul", _) => Ok(Expr::Literal(token)),
+				(Keyword, "super", _) => {
 					self.consume(punct![.])?;
 					let method = self.consume_kind(TokenKind::Ident)?;
 
@@ -291,19 +291,19 @@ impl RecursiveDescent for ParseStream {
 						method,
 					}))
 				}
-				Token::Keyword(Keyword::This, _) => Ok(Expr::This(token)),
-				Token::Keyword(Keyword::Fun, _) => Ok(Expr::Fun(self.parse()?)),
-				Token::Brace(lex, _) if lex == "(" => {
+				(Keyword, "this", _) => Ok(Expr::This(token)),
+				(Keyword, "fun", _) => Ok(Expr::Fun(self.parse()?)),
+				(Brace, "(", _) => {
 					let expr = self.parse::<Expr>()?;
 					self.consume(brace![")"])?;
 
 					Ok(Expr::Grouping(Box::new(expr)))
 				}
-				Token::Ident(_, _) => Ok(Expr::Variable(token)),
-				other => Err(SpannedError {
+				(Ident, _, _) => Ok(Expr::Variable(token)),
+				(_, _, span) => Err(SpannedError {
 					message: "Expected expression".into(),
 					source: self.source(),
-					span: Some(other.span()),
+					span: Some(span),
 				}),
 			},
 			None => Err(SpannedError {
