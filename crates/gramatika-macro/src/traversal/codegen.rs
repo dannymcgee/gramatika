@@ -6,7 +6,7 @@ use proc_macro2 as pm2;
 use quote::{format_ident, quote, ToTokens};
 use syn::Token;
 
-use super::{Annotated, Ownership, Signature, VisitorDef};
+use super::{Annotated, Ownership, VisitorDef, VisitorSignature, WalkerDef};
 
 impl ToTokens for VisitorDef {
 	fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
@@ -45,7 +45,7 @@ impl ToTokens for VisitorDef {
 	}
 }
 
-impl ToTokens for Signature {
+impl ToTokens for VisitorSignature {
 	fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
 		let ParamType = &self.param_type;
 		let visit_host =
@@ -54,6 +54,7 @@ impl ToTokens for Signature {
 
 		if let Some(ReturnType) = self.ret.as_ref() {
 			tokens.extend(quote! {
+				#[must_use]
 				fn #visit_host(#slf, host: #ParamType) -> #ReturnType {
 					#ReturnType::default()
 				}
@@ -61,6 +62,29 @@ impl ToTokens for Signature {
 		} else {
 			tokens.extend(quote! {
 				fn #visit_host(#slf, host: #ParamType) {}
+			});
+		}
+	}
+}
+
+impl ToTokens for WalkerDef {
+	fn to_tokens(&self, tokens: &mut pm2::TokenStream) {
+		let Target = &self.target;
+		for method in self.methods.iter() {
+			let Walk = &method.walker_type;
+			let walk = format_ident!("{}", Walk.to_string().to_case(Case::Snake));
+			let slf = &method.receiver;
+			let visitor = &method.visitor_name;
+			let Visitor = &method.visitor_type;
+			let body = &method.body;
+
+			tokens.extend(quote! {
+				impl #Walk for #Target {
+					#[allow(unused_variables)]
+					fn #walk(#slf, #visitor: #Visitor) {
+						#body
+					}
+				}
 			});
 		}
 	}

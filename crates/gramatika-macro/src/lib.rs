@@ -36,3 +36,8 @@ pub fn regex(input: TokenStream) -> TokenStream {
 pub fn visitor(input: TokenStream) -> TokenStream {
 	traversal::visitor(input)
 }
+
+#[proc_macro]
+pub fn walker(input: TokenStream) -> TokenStream {
+	traversal::walker(input)
+}

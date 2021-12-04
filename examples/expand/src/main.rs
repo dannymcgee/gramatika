@@ -16,7 +16,7 @@ visitor!(Visitor, Walk for &mut dyn self {
 	fn (&ForStmt);
 	fn (&ExprStmt);
 
-	fn (&Expr) -> FlowControl;
+	fn (&Expr);
 });
 
 visitor!(VisitorMut, WalkMut for &mut dyn self {
@@ -31,8 +31,114 @@ visitor!(VisitorMut, WalkMut for &mut dyn self {
 	fn (&mut ForStmt);
 	fn (&mut ExprStmt);
 
-	fn (&mut Expr) -> FlowControl;
+	fn (&mut Expr);
 });
+
+walker! {
+	for SyntaxNode
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{
+		if visitor.visit_syntax_node(self) == FlowControl::Continue {
+			match self {
+				SyntaxNode::Decl(inner) => inner.$walk(visitor),
+				SyntaxNode::Stmt(inner) => inner.$walk(visitor),
+				SyntaxNode::Expr(inner) => inner.$walk(visitor),
+			}
+		}
+	}
+}
+
+walker! {
+	for Decl
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{
+		if visitor.visit_decl(self) == FlowControl::Continue {
+			match self {
+				Decl::Struct(inner) => inner.$walk(visitor),
+				Decl::Function(inner) => inner.$walk(visitor),
+				Decl::Variable(inner) => inner.$walk(visitor),
+			}
+		}
+	}
+}
+
+walker! {
+	for StructDecl
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{}
+}
+
+walker! {
+	for FunctionDecl
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{}
+}
+
+walker! {
+	for VariableDecl
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{}
+}
+
+walker! {
+	for Stmt
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{
+		if visitor.visit_stmt(self) == FlowControl::Continue {
+			match self {
+				Stmt::If(inner) => inner.$walk(visitor),
+				Stmt::For(inner) => inner.$walk(visitor),
+				Stmt::Expr(inner) => inner.$walk(visitor),
+			}
+		}
+	}
+}
+
+walker! {
+	for IfStmt
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{}
+}
+
+walker! {
+	for ForStmt
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{}
+}
+
+walker! {
+	for ExprStmt
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{}
+}
+
+walker! {
+	for Expr
+	where
+		Walk: fn (&self, visitor: &mut dyn Visitor),
+		WalkMut: fn (&mut self, visitor: &mut dyn VisitorMut),
+	{
+		visitor.visit_expr(self);
+	}
+}
 
 fn main() {}
 
@@ -62,6 +168,7 @@ pub struct ExprStmt;
 
 pub enum Expr {}
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum FlowControl {
 	Continue,
 	Break,
