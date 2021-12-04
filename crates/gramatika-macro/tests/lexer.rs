@@ -112,16 +112,24 @@ enum Token {
 
 	#[pattern = "[0-9]+"]
 	Literal(Substr, Span),
+
+	OverrideTest(Substr, Span),
 }
 
 fn main() {
 	let input = "let foo = 2 + 2;";
-	let mut lexer = Lexer::new(input.into());
+	let mut lexer = Lexer::new(input.into()).with_runtime_matcher(|s| {
+		if s.len() >= 3 && &s[..3] == "foo" {
+			Some((3, TokenKind::OverrideTest))
+		} else {
+			None
+		}
+	});
 	let tokens = lexer.scan();
 
 	let expected = vec![
 		Token::keyword("let".into(), span![0:0...0:3]),
-		Token::ident("foo".into(), span![0:4...0:7]),
+		Token::override_test("foo".into(), span![0:4...0:7]),
 		Token::operator("=".into(), span![0:8...0:9]),
 		Token::literal("2".into(), span![0:10...0:11]),
 		Token::operator("+".into(), span![0:12...0:13]),

@@ -8,6 +8,16 @@ pub trait Lexer {
 	type Output: Token;
 
 	fn new(input: ArcStr) -> Self;
+
+	#[allow(unused_variables)]
+	fn with_runtime_matcher<F>(self, matcher: F) -> Self
+	where
+		Self: Sized,
+		F: Fn(&str) -> Option<(usize, <Self::Output as Token>::Kind)> + 'static,
+	{
+		self
+	}
+
 	fn source(&self) -> ArcStr;
 	fn scan_token(&mut self) -> Option<Self::Output>;
 	fn scan(&mut self) -> Vec<Self::Output> {

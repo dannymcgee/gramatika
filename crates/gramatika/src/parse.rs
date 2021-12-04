@@ -17,6 +17,15 @@ where Self: Sized
 pub trait ParseStreamer {
 	type Token: Token + Spanned;
 
+	#[allow(unused_variables)]
+	fn with_runtime_matcher<F>(self, matcher: F) -> Self
+	where
+		Self: Sized,
+		F: Fn(&str) -> Option<(usize, <Self::Token as Token>::Kind)> + 'static,
+	{
+		self
+	}
+
 	/// Provides a more convenient API for parsing other implementers of the [`Parse`]
 	/// trait.
 	///
@@ -167,6 +176,15 @@ where
 	L: Lexer<Output = T>,
 {
 	type Token = T;
+
+	fn with_runtime_matcher<F>(mut self, matcher: F) -> Self
+	where
+		Self: Sized,
+		F: Fn(&str) -> Option<(usize, <Self::Token as Token>::Kind)> + 'static,
+	{
+		self.lexer = self.lexer.with_runtime_matcher(matcher);
+		self
+	}
 
 	fn is_empty(&mut self) -> bool {
 		if self.peek.is_some() {

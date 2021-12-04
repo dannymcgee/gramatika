@@ -23,6 +23,12 @@ pub fn derive(input: TokenStream) -> TokenStream {
 			remaining: ::gramatika::Substr,
 			current: ::gramatika::Position,
 			lookahead: ::gramatika::Position,
+			runtime_matcher: Option<Box<
+				dyn Fn(&str) -> Option<(
+					usize,
+					<<Self as ::gramatika::Lexer>::Output as ::gramatika::Token>::Kind
+				)>
+			>>
 		}
 
 		type __TOKEN_CTOR = fn(::gramatika::Substr, ::gramatika::Span) -> #enum_ident;
@@ -36,7 +42,19 @@ pub fn derive(input: TokenStream) -> TokenStream {
 					input,
 					current: ::gramatika::Position::default(),
 					lookahead: ::gramatika::Position::default(),
+					runtime_matcher: None,
 				}
+			}
+
+			fn with_runtime_matcher<F>(mut self, matcher: F) -> Self
+			where
+				F: Fn(&str) -> Option<(
+					usize,
+					<<Self as ::gramatika::Lexer>::Output as ::gramatika::Token>::Kind
+				)> + 'static
+			{
+				self.runtime_matcher = Some(Box::new(matcher));
+				self
 			}
 
 			fn source(&self) -> ::gramatika::ArcStr {
@@ -45,6 +63,12 @@ pub fn derive(input: TokenStream) -> TokenStream {
 
 			fn scan_token(&mut self) -> Option<Self::Output> {
 				let result = None
+				.or_else(|| match self.runtime_matcher.as_ref() {
+					Some(matcher) => {
+						matcher(&self.remaining).map(|(len, kind)| (0, len, kind))
+					}
+					None => None,
+				})
 				#(.or_else(|| #enum_ident::#matcher_ident(&self.remaining)))*;
 
 				match result {
