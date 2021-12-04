@@ -4,45 +4,71 @@
 #[macro_use]
 extern crate gramatika;
 
-use gramatika::{Lexer as _, Span, Substr};
+visitor!(Visitor, Walk for &mut dyn self {
+	fn (&SyntaxNode) -> FlowControl;
+	fn (&Decl) -> FlowControl;
+	fn (&StructDecl);
+	fn (&FunctionDecl);
+	fn (&VariableDecl);
 
-#[derive(Debug, Token, Lexer, PartialEq)]
-enum Token {
-	#[discard]
-	#[pattern = "//.*"]
-	Comment(Substr, Span),
+	fn (&Stmt) -> FlowControl;
+	fn (&IfStmt);
+	fn (&ForStmt);
+	fn (&ExprStmt);
 
-	#[subset_of(Ident)]
-	#[pattern = "and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while"]
-	Keyword(Substr, Span),
+	fn (&Expr) -> FlowControl;
+});
 
-	#[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
-	Ident(Substr, Span),
+visitor!(VisitorMut, WalkMut for &mut dyn self {
+	fn (&mut SyntaxNode) -> FlowControl;
+	fn (&mut Decl) -> FlowControl;
+	fn (&mut StructDecl);
+	fn (&mut FunctionDecl);
+	fn (&mut VariableDecl);
 
-	#[pattern = r"[;:{}()\[\]]"]
-	Punct(Substr, Span),
+	fn (&mut Stmt) -> FlowControl;
+	fn (&mut IfStmt);
+	fn (&mut ForStmt);
+	fn (&mut ExprStmt);
 
-	#[pattern = "[-+*/=]"]
-	Operator(Substr, Span),
+	fn (&mut Expr) -> FlowControl;
+});
 
-	#[pattern = "[0-9]+"]
-	Literal(Substr, Span),
+fn main() {}
+
+pub enum SyntaxNode {
+	Decl(Decl),
+	Stmt(Stmt),
+	Expr(Expr),
 }
 
-fn main() {
-	let input = "let foo = 2 + 2;";
-	let mut lexer = Lexer::new(input.into());
-	let tokens = lexer.scan();
+pub enum Decl {
+	Struct(StructDecl),
+	Function(FunctionDecl),
+	Variable(VariableDecl),
+}
+pub struct StructDecl;
+pub struct FunctionDecl;
+pub struct VariableDecl;
 
-	let expected = vec![
-		Token::keyword("let".into(), span![0:0...0:3]),
-		Token::ident("foo".into(), span![0:4...0:7]),
-		Token::operator("=".into(), span![0:8...0:9]),
-		Token::literal("2".into(), span![0:10...0:11]),
-		Token::operator("+".into(), span![0:12...0:13]),
-		Token::literal("2".into(), span![0:14...0:15]),
-		Token::punct(";".into(), span![0:15...0:16]),
-	];
+pub enum Stmt {
+	If(IfStmt),
+	For(ForStmt),
+	Expr(ExprStmt),
+}
+pub struct IfStmt;
+pub struct ForStmt;
+pub struct ExprStmt;
 
-	assert_eq!(tokens, expected);
+pub enum Expr {}
+
+pub enum FlowControl {
+	Continue,
+	Break,
+}
+
+impl Default for FlowControl {
+	fn default() -> Self {
+		FlowControl::Continue
+	}
 }
