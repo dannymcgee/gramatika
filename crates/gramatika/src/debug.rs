@@ -1,5 +1,7 @@
 use std::{fmt, marker::PhantomData, rc::Rc, sync::Arc};
 
+use arcstr::{ArcStr, Substr};
+
 pub const INDENT: &str = "  ";
 
 pub trait DebugLisp {
@@ -76,6 +78,18 @@ impl<T> DebugLisp for PhantomData<T> {
 }
 
 impl DebugLisp for String {
+	fn fmt(&self, f: &mut fmt::Formatter, _: usize) -> fmt::Result {
+		<Self as fmt::Debug>::fmt(self, f)
+	}
+}
+
+impl DebugLisp for ArcStr {
+	fn fmt(&self, f: &mut fmt::Formatter, _: usize) -> fmt::Result {
+		<Self as fmt::Debug>::fmt(self, f)
+	}
+}
+
+impl DebugLisp for Substr {
 	fn fmt(&self, f: &mut fmt::Formatter, _: usize) -> fmt::Result {
 		<Self as fmt::Debug>::fmt(self, f)
 	}
