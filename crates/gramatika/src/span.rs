@@ -24,19 +24,19 @@ pub struct Position {
 	pub character: usize,
 }
 
-impl PartialOrd for Position {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl Ord for Position {
+	fn cmp(&self, other: &Self) -> Ordering {
 		if self.line == other.line {
-			Some(self.character.cmp(&other.character))
+			self.character.cmp(&other.character)
 		} else {
-			Some(self.line.cmp(&other.line))
+			self.line.cmp(&other.line)
 		}
 	}
 }
 
-impl Ord for Position {
-	fn cmp(&self, other: &Self) -> Ordering {
-		self.partial_cmp(other).unwrap()
+impl PartialOrd for Position {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(other))
 	}
 }
 

@@ -1,7 +1,7 @@
 [package]
 name = "gramatika-macro"
 version = "0.4.3"
-edition = "2018"
+edition = "2021"
 authors = ["Danny McGee <dannymcgee@gmail.com>"]
 license = "MIT OR Apache-2.0"
 readme = "../../README.md"

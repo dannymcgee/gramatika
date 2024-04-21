@@ -31,6 +31,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 			>>
 		}
 
+		#[allow(non_camel_case_types)]
 		type __TOKEN_CTOR = fn(::gramatika::Substr, ::gramatika::Span) -> #enum_ident;
 
 		impl ::gramatika::Lexer for #lexer_ident {

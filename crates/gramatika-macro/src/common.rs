@@ -29,12 +29,12 @@ impl VariantIdents {
 					| "for" | "if" | "impl"
 					| "in" | "let" | "loop"
 					| "macro" | "match" | "mod"
-					| "move" | "mut" | "pub"
-					| "ref" | "return" | "static"
-					| "struct" | "super" | "trait"
-					| "type" | "union" | "unsafe"
-					| "use" | "where" | "while"
-					| "yield"
+					| "move" | "mut" | "path"
+					| "pub" | "ref" | "return"
+					| "static" | "struct"
+					| "super" | "trait" | "type"
+					| "union" | "unsafe" | "use"
+					| "where" | "while" | "yield"
 			) {
 				format_ident!("{}_", snake)
 			} else {

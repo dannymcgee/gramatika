@@ -100,7 +100,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			}
 		}
 
-		impl#generics #ident#generics {
+		impl #generics #ident #generics {
 			pub fn as_inner(&self) -> (::gramatika::Substr, ::gramatika::Span) {
 				match self {#(
 					Self::#variant_ident(lexeme, span) => (lexeme.clone(), *span)
@@ -132,7 +132,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			}
 		)*
 
-		impl#generics ::gramatika::Token for #ident#generics {
+		impl #generics ::gramatika::Token for #ident #generics {
 			type Kind = #kind_ident;
 
 			fn lexeme(&self) -> ::gramatika::Substr {
@@ -156,13 +156,13 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			}
 		}
 
-		impl#generics ::gramatika::Spanned for #ident#generics {
+		impl #generics ::gramatika::Spanned for #ident #generics {
 			fn span(&self) -> ::gramatika::Span {
 				self.as_inner().1
 			}
 		}
 
-		impl#generics Clone for #ident#generics {
+		impl #generics Clone for #ident #generics {
 			fn clone(&self) -> Self {
 				match self {#(
 					#ident::#variant_ident(lexeme, span) => #ident::#variant_ident(lexeme.clone(), *span)

@@ -43,7 +43,7 @@ fn derive_debug_struct(
 	};
 
 	let stream = quote! {
-		impl#generics ::gramatika::DebugLisp for #ident#generics {
+		impl #generics ::gramatika::DebugLisp for #ident #generics {
 			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>, indent: usize) -> ::core::fmt::Result {
 				::gramatika::DebugLispStruct::new(f, indent, stringify!(#ident))
 					#(#field_method_call)*
@@ -51,7 +51,7 @@ fn derive_debug_struct(
 			}
 		}
 
-		impl#generics ::core::fmt::Debug for #ident#generics {
+		impl #generics ::core::fmt::Debug for #ident #generics {
 			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
 				::gramatika::DebugLisp::fmt(self, f, 0)
 			}
@@ -63,22 +63,25 @@ fn derive_debug_struct(
 
 fn derive_debug_enum(ident: &Ident, generics: &Generics, data: &DataEnum) -> TokenStream {
 	let variant_name = data.variants.iter().map(|variant| &variant.ident);
-	let variant_inner_type = data
-		.variants
-		.iter()
-		.map(|variant| match &variant.fields {
-			Fields::Unnamed(fields) => fields.unnamed.iter().map(|field| &field.ty),
-			Fields::Named(_) => {
-				panic!("`#[derive(DebugLisp)]` is not supported for enum variants with named fields")
-			}
-			Fields::Unit => {
-				panic!("`#[derive(DebugLisp)]` is not supported for unit enum variants")
-			}
-		})
-		.flatten();
+	let variant_inner_type =
+		data.variants
+			.iter()
+			.flat_map(|variant| match &variant.fields {
+				Fields::Unnamed(fields) => fields.unnamed.iter().map(|field| &field.ty),
+				Fields::Named(_) => {
+					panic!(
+						"`#[derive(DebugLisp)]` is not supported for enum variants with named fields"
+					)
+				}
+				Fields::Unit => {
+					panic!(
+						"`#[derive(DebugLisp)]` is not supported for unit enum variants"
+					)
+				}
+			});
 
 	let stream = quote! {
-		impl#generics ::gramatika::DebugLisp for #ident#generics {
+		impl #generics ::gramatika::DebugLisp for #ident #generics {
 			fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>, indent: usize) -> ::std::fmt::Result {
 				write!(f, "({}::", stringify!(#ident))?;
 
@@ -93,7 +96,7 @@ fn derive_debug_enum(ident: &Ident, generics: &Generics, data: &DataEnum) -> Tok
 			}
 		}
 
-		impl#generics ::core::fmt::Debug for #ident#generics {
+		impl #generics ::core::fmt::Debug for #ident #generics {
 			fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
 				::gramatika::DebugLisp::fmt(self, f, 0)
 			}
@@ -109,7 +112,7 @@ pub fn derive_token(input: TokenStream) -> TokenStream {
 	let generics = &ast.generics;
 
 	let stream = quote! {
-		impl#generics ::gramatika::DebugLisp for #ident#generics {
+		impl #generics ::gramatika::DebugLisp for #ident #generics {
 			fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>, _: usize) -> ::std::fmt::Result {
 				write!(
 					f,
