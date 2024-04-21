@@ -1,6 +1,6 @@
 [package]
 name = "gramatika"
-version = "0.4.3"
+version = "0.5.0"
 edition = "2021"
 authors = ["Danny McGee <dannymcgee@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -17,7 +17,7 @@ once_cell = { version = "1.8", optional = true }
 regex-automata = { version = "0.1", optional = true }
 
 [dependencies.gramatika-macro]
-version = "0.4.3"
+version = "0.5.0"
 path = "../gramatika-macro"
 optional = true
 
