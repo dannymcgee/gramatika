@@ -1,6 +1,6 @@
 use gramatika::{ParseStream, ParseStreamer};
 
-use crate::*;
+use crate::stmt::Program;
 
 #[test]
 fn print_stmt() {

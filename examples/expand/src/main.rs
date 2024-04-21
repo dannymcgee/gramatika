@@ -168,14 +168,9 @@ pub struct ExprStmt;
 
 pub enum Expr {}
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub enum FlowControl {
+	#[default]
 	Continue,
 	Break,
-}
-
-impl Default for FlowControl {
-	fn default() -> Self {
-		FlowControl::Continue
-	}
 }

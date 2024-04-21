@@ -1,11 +1,9 @@
 use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::{
-	brace,
 	expr::{Expr, FunExpr},
-	operator,
 	parse::ParseStream,
-	punct,
+	tokens::{brace, operator, punct},
 	tokens::{Token, TokenKind},
 };
 

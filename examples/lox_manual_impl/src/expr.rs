@@ -1,11 +1,9 @@
 use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::{
-	brace, keyword, operator,
 	parse::ParseStream,
-	punct,
 	stmt::Stmt,
-	tokens::{Token, TokenKind},
+	tokens::{brace, keyword, operator, punct, Token, TokenKind},
 };
 
 #[derive(DebugLisp)]

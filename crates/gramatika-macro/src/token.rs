@@ -115,7 +115,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		}
 
 		#(
-			#[macro_export]
+			#[allow(unused_macros)]
 			macro_rules! #ctor_ident {
 				($lexeme:literal) => {
 					#ident::#ctor_ident(
@@ -130,6 +130,9 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 					)
 				};
 			}
+
+			#[allow(unused)]
+			pub(crate) use #ctor_ident;
 		)*
 
 		impl #generics ::gramatika::Token for #ident #generics {
