@@ -21,7 +21,7 @@ impl ToTokens for VisitorDef {
 		});
 
 		if let Some(Walk) = &self.walker_ident {
-			if let Some(signature) = self.signatures.get(0) {
+			if let Some(signature) = self.signatures.first() {
 				let swn = signature.param_type.ownership;
 				let pwn = self.receiver.ownership;
 				let walk = format_ident!("{}", Walk.to_string().to_case(Case::Snake));

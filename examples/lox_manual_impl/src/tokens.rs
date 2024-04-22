@@ -294,7 +294,7 @@ impl Token {
 	}
 }
 
-#[macro_export]
+#[allow(unused_macros)]
 macro_rules! brace {
 	($lexeme:literal) => {
 		Token::brace(
@@ -309,7 +309,10 @@ macro_rules! brace {
 		)
 	};
 }
-#[macro_export]
+#[allow(unused)]
+pub(crate) use brace;
+
+#[allow(unused_macros)]
 macro_rules! ident {
 	($lexeme:literal) => {
 		Token::ident(
@@ -324,7 +327,10 @@ macro_rules! ident {
 		)
 	};
 }
-#[macro_export]
+#[allow(unused)]
+pub(crate) use ident;
+
+#[allow(unused_macros)]
 macro_rules! keyword {
 	($lexeme:literal) => {
 		Token::keyword(
@@ -339,7 +345,10 @@ macro_rules! keyword {
 		)
 	};
 }
-#[macro_export]
+#[allow(unused)]
+pub(crate) use keyword;
+
+#[allow(unused_macros)]
 macro_rules! num_lit {
 	($lexeme:literal) => {
 		Token::num_lit(
@@ -354,7 +363,10 @@ macro_rules! num_lit {
 		)
 	};
 }
-#[macro_export]
+#[allow(unused)]
+pub(crate) use num_lit;
+
+#[allow(unused_macros)]
 macro_rules! str_lit {
 	($lexeme:literal) => {
 		Token::str_lit(
@@ -369,7 +381,10 @@ macro_rules! str_lit {
 		)
 	};
 }
-#[macro_export]
+#[allow(unused)]
+pub(crate) use str_lit;
+
+#[allow(unused_macros)]
 macro_rules! operator {
 	($lexeme:literal) => {
 		Token::operator(
@@ -384,7 +399,10 @@ macro_rules! operator {
 		)
 	};
 }
-#[macro_export]
+#[allow(unused)]
+pub(crate) use operator;
+
+#[allow(unused_macros)]
 macro_rules! punct {
 	($lexeme:literal) => {
 		Token::punct(
@@ -399,7 +417,8 @@ macro_rules! punct {
 		)
 	};
 }
-pub use {brace, ident, keyword, num_lit, operator, punct, str_lit};
+#[allow(unused)]
+pub(crate) use punct;
 
 impl Clone for Token {
 	fn clone(&self) -> Self {

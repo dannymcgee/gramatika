@@ -9,12 +9,9 @@ mod expr;
 mod stmt;
 mod tokens;
 
-use decl::*;
-use expr::*;
-use stmt::*;
-use tokens::*;
-
+use stmt::Program;
 pub use tokens::Lexer;
+use tokens::Token;
 
 use gramatika::ParseStreamer;
 

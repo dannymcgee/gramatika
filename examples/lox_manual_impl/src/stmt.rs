@@ -1,13 +1,10 @@
 use gramatika::{Parse, ParseStreamer, Result, SpannedError, Token as _};
 
 use crate::{
-	brace,
 	decl::Decl,
 	expr::Expr,
-	keyword,
 	parse::ParseStream,
-	punct,
-	tokens::{Token, TokenKind},
+	tokens::{brace, keyword, punct, Token, TokenKind},
 };
 
 #[derive(DebugLisp)]

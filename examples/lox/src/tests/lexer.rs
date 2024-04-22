@@ -1,4 +1,4 @@
-use crate::{Lexer, Token};
+use crate::{tokens::Token, Lexer};
 use gramatika::{ArcStr, Lexer as _};
 
 #[test]
