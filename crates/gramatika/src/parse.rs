@@ -160,6 +160,139 @@ where
 		(self.input, self.tokens)
 	}
 
+	/// Advances the iterator by splitting the next token returned by the lexer
+	/// in two at the index indicated by `split_at`.
+	///
+	/// This function returns the result of calling `ctor.0` with the scanned
+	/// token's substring from `(..split_at)`, and the `peek` buffer is
+	/// populated with the result of calling `ctor.1` with `(split_at..)`.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// # #[macro_use] extern crate gramatika_macro;
+	/// # fn main () {
+	/// use gramatika::{span, Substr, Span, ParseStream, ParseStreamer};
+	///
+	/// #[derive(Token, Lexer, Debug, PartialEq, Eq)]
+	/// enum Token {
+	///     #[pattern = "ab"]
+	///     Ab(Substr, Span),
+	///     #[pattern = "a"]
+	///     A(Substr, Span),
+	///     #[pattern = "b"]
+	///     B(Substr, Span),
+	/// }
+	///
+	/// let input = "ab";
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	///
+	/// assert_eq!(parser.peek(), Some(&Token::Ab("ab".into(), span![0:0...0:2])));
+	///
+	/// let a = parser.split_next(1, (Token::a, Token::b)).unwrap();
+	/// let b = parser.next().unwrap();
+	///
+	/// assert_eq!(a, Token::A("a".into(), span![0:0...0:1]));
+	/// assert_eq!(b, Token::B("b".into(), span![0:1...0:2]));
+	///
+	/// # }
+	/// ```
+	///
+	/// This method is (frankly) a sort of kludge to resolve a common ambiguity
+	/// with language grammars that include both a right-shift operator (`>>`)
+	/// and generic types with `<` and `>` as braces:
+	///
+	/// ```
+	/// # #[macro_use] extern crate gramatika_macro;
+	/// # fn main () {
+	/// use gramatika::{Result, Parse, ParseStream, ParseStreamer, Span, Substr};
+	///
+	/// #[derive(Token, Lexer, Debug, PartialEq, Eq)]
+	/// enum Token {
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
+	///
+	///     #[pattern = r"&&?|\|\|?|--?|\+\+?|>>|<<"]
+	///     #[pattern = "[=!<>]=?"]
+	///     #[pattern = "[%*/~^]"]
+	///     Operator(Substr, Span),
+	/// }
+	///
+	/// #[derive(Debug)]
+	/// struct Good {
+	///     name: Token,
+	///     generic: Option<Box<Good>>,
+	/// }
+	///
+	/// #[derive(Debug)]
+	/// struct Bad {
+	///     name: Token,
+	///     generic: Option<Box<Bad>>,
+	/// }
+	///
+	/// impl Parse for Bad {
+	///     type Stream = ParseStream<Token, Lexer>;
+	///
+	///     fn parse(input: &mut Self::Stream) -> Result<Self> {
+	///         let mut result = Bad {
+	///             name: input.consume_kind(TokenKind::Ident)?,
+	///             generic: None,
+	///         };
+	///
+	///         if input.check(operator![<]) {
+	///             input.consume(operator![<])?;
+	///             result.generic = Some(Box::new(input.parse()?));
+	///             input.consume(operator![>])?;
+	///         }
+	///
+	///         Ok(result)
+	///     }
+	/// }
+	///
+	/// impl Parse for Good {
+	///     type Stream = ParseStream<Token, Lexer>;
+	///
+	///     fn parse(input: &mut Self::Stream) -> Result<Self> {
+	///         let mut result = Good {
+	///             name: input.consume_kind(TokenKind::Ident)?,
+	///             generic: None,
+	///         };
+	///
+	///         if input.check(operator![<]) {
+	///             input.consume(operator![<])?;
+	///             result.generic = Some(Box::new(input.parse()?));
+	///
+	///             if input.check(operator![>>]) {
+	///                 input.split_next(1, (Token::operator, Token::operator))?;
+	///             } else {
+	///                 input.consume(operator![>])?;
+	///             }
+	///         }
+	///
+	///         Ok(result)
+	///     }
+	/// }
+	///
+	/// let input = "Foo<Bar<Baz>>";
+	///
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let bad = parser.parse::<Bad>();
+	/// assert!(bad.is_err());
+	///
+	/// let err = bad.unwrap_err();
+	/// let message = format!("{err}");
+	/// assert_eq!(message, "
+	/// ERROR: Expected `>`
+	///   |
+	/// 1 | Foo<Bar<Baz>>
+	///   |            ^-
+	/// ");
+	///
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let good = parser.parse::<Good>();
+	/// assert!(good.is_ok());
+	/// # }
+	/// ```
 	pub fn split_next(
 		&mut self,
 		split_at: usize,
