@@ -2,7 +2,7 @@ use core::fmt;
 
 use arcstr::{ArcStr, Substr};
 
-use crate::{Lexer, Result, Span, Spanned, SpannedError, Token};
+use crate::{Lexer, Position, Result, Span, Spanned, SpannedError, Token};
 
 pub type TokenCtor<T> = fn(Substr, Span) -> T;
 
@@ -158,6 +158,66 @@ where
 
 	pub fn into_inner(self) -> (ArcStr, Vec<T>) {
 		(self.input, self.tokens)
+	}
+
+	pub fn split_next(
+		&mut self,
+		split_at: usize,
+		ctors: (TokenCtor<T>, TokenCtor<T>),
+	) -> Result<T> {
+		let Some(next) = self.next() else {
+			return Err(SpannedError {
+				message: "Unexpected end of input".into(),
+				source: self.source(),
+				span: None,
+			});
+		};
+
+		let lexeme = next.lexeme();
+		let span = next.span();
+
+		if lexeme.len() <= split_at {
+			return Err(SpannedError {
+				message: "Unexpected end of input".into(),
+				source: self.source(),
+				span: None,
+			});
+		}
+
+		let (next_ctor, peek_ctor) = ctors;
+
+		let peek = peek_ctor(
+			lexeme.substr(split_at..),
+			Span {
+				start: Position {
+					line: span.start.line,
+					character: span.start.character + split_at,
+				},
+				end: span.end,
+			},
+		);
+
+		let next = next_ctor(
+			lexeme.substr(..split_at),
+			Span {
+				start: span.start,
+				end: Position {
+					line: span.end.line,
+					character: span.end.character - split_at,
+				},
+			},
+		);
+
+		assert!(
+			self.peek.is_none(),
+			"Expected the peek buffer to be empty. \
+				This is a bug in gramatika, please report it here: \
+				https://github.com/dannymcgee/gramatika/issues"
+		);
+
+		self.peek = Some(peek);
+
+		Ok(next)
 	}
 
 	fn upcast(token: T, convert: TokenCtor<T>) -> T {
