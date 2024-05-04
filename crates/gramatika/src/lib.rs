@@ -462,7 +462,7 @@ pub mod debug;
 pub mod error;
 pub mod lexer;
 pub mod parse;
-pub mod span;
+mod span;
 
 pub use debug::*;
 pub use error::*;
