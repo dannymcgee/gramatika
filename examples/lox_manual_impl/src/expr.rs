@@ -279,7 +279,7 @@ impl RecursiveDescent for ParseStream {
 		match self.next() {
 			Some(token) => match token.as_matchable() {
 				(NumLit | StrLit, _, _) => Ok(Expr::Literal(token)),
-				(Keyword, "true" | "false" | "nul", _) => Ok(Expr::Literal(token)),
+				(Keyword, "true" | "false" | "nil", _) => Ok(Expr::Literal(token)),
 				(Keyword, "super", _) => {
 					self.consume(punct![.])?;
 					let method = self.consume_kind(TokenKind::Ident)?;
