@@ -44,16 +44,34 @@ pub trait Spanned {
 	fn span(&self) -> Span;
 }
 
+#[doc(hidden)]
+#[macro_export]
+#[deprecated(
+	since = "0.5.0",
+	note = "\n\
+	The `span!` macro signature with three dots and zero-based indices has \
+	been deprecated.\n\n\
+	Use the new signature instead, with two dots and one-based indices:\n\
+	- Old: `span!(0:0...0:4)`\n\
+	- New: `span!(1:1..1:5)`\n\n\
+	See here for more info: https://github.com/dannymcgee/gramatika/pull/5"
+)]
+macro_rules! __span_deprecated {
+	($start_line:literal:$start_char:literal...$end_line:literal:$end_char:literal) => {
+		$crate::Span::new(($start_line, $start_char), ($end_line, $end_char))
+	};
+}
+
 #[macro_export]
 macro_rules! span {
-	($start_line:literal:$start_char:literal...$end_line:literal:$end_char:literal) => {
-		::gramatika::Span::new(($start_line, $start_char), ($end_line, $end_char))
-	};
 	($start_line:literal : $start_char:literal .. $end_line:literal : $end_char:literal) => {
 		::gramatika::Span::new(
 			($start_line - 1, $start_char - 1),
 			($end_line - 1, $end_char - 1),
 		)
+	};
+	($start_line:literal:$start_char:literal...$end_line:literal:$end_char:literal) => {
+		$crate::__span_deprecated!($start_line:$start_char...$end_line:$end_char)
 	};
 }
 
