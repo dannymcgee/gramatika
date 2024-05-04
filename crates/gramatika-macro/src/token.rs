@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
@@ -25,19 +24,21 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		.map(|v| (v.ident.clone(), v.fields.clone()))
 		.unzip();
 
-	let discarded_kinds = variants
-		.iter()
-		.enumerate()
-		.filter_map(|(idx, var)| {
-			let VariantAttrs { discard, .. } = common::extract_variant_attrs(var);
-			if discard {
-				Some(variant_ident[idx].clone())
-			} else {
-				None
-			}
-		})
-		.collect_vec();
-	let discards_len = discarded_kinds.len();
+	let mut discarded_kinds = vec![];
+	let mut multiline_kinds = vec![];
+
+	for (idx, var) in variants.iter().enumerate() {
+		let VariantAttrs {
+			discard, multiline, ..
+		} = common::extract_variant_attrs(var);
+
+		if discard {
+			discarded_kinds.push(variant_ident[idx].clone());
+		}
+		if multiline {
+			multiline_kinds.push(variant_ident[idx].clone());
+		}
+	}
 
 	let ctor_params = variant_fields
 		.iter()
@@ -76,14 +77,20 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			#(#variant_ident),*
 		}
 
+		#[allow(unused_macros)]
+		macro_rules! count {
+			() => (0_usize);
+			($current:tt $($remaining:tt)*) => (1_usize + count!( $($remaining)* ));
+		}
+
 		macro_rules! hash_set {
 			($($elem:path),+ $(,)?) => {{
-				let mut set = ::std::collections::HashSet::with_capacity(#discards_len);
+				let mut set = ::std::collections::HashSet::with_capacity(count!( $($elem)* ));
 				$( set.insert($elem); )+
 				set
 			}};
 			() => {
-				::std::collections::HashSet::with_capacity(#discards_len)
+				::std::collections::HashSet::default()
 			};
 		}
 
@@ -96,6 +103,16 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 
 				DISCARDS.get_or_init(|| hash_set![
 					#( #kind_ident::#discarded_kinds, )*
+				])
+			}
+			fn multilines() -> &'static ::std::collections::HashSet<#kind_ident> {
+				use ::std::collections::HashSet;
+				use ::gramatika::once_cell::sync::OnceCell;
+
+				static MULTILINES: OnceCell<HashSet<#kind_ident>> = OnceCell::new();
+
+				MULTILINES.get_or_init(|| hash_set![
+					#( #kind_ident::#multiline_kinds, )*
 				])
 			}
 		}

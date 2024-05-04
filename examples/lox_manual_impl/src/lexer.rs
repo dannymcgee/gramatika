@@ -40,7 +40,8 @@ impl gramatika::Lexer for Lexer {
 	#[rustfmt::skip]
 	fn scan_token(&mut self) -> Option<Self::Output> {
 		let result = None
-			.or_else(|| Token::match_comment(&self.remaining))
+			.or_else(|| Token::match_line_comment(&self.remaining))
+			.or_else(|| Token::match_block_comment(&self.remaining))
 			.or_else(|| Token::match_ident(&self.remaining))
 			.or_else(|| Token::match_brace(&self.remaining))
 			.or_else(|| Token::match_punct(&self.remaining))
@@ -51,7 +52,8 @@ impl gramatika::Lexer for Lexer {
 		match result {
 			Some((start, end, kind)) => {
 				let ctor = match kind {
-					TokenKind::Comment => Token::comment as TokenCtor,
+					TokenKind::LineComment => Token::line_comment as TokenCtor,
+					TokenKind::BlockComment => Token::block_comment as TokenCtor,
 					TokenKind::Keyword => Token::keyword as TokenCtor,
 					TokenKind::Ident => Token::ident as TokenCtor,
 					TokenKind::Brace => Token::brace as TokenCtor,
@@ -62,7 +64,26 @@ impl gramatika::Lexer for Lexer {
 				};
 				let lexeme = self.remaining.substr(start..end);
 
-				self.lookahead.character += end;
+				if TokenKind::multilines().contains(&kind) {
+					let mut line_inc = 0_usize;
+					let mut remaining = lexeme.as_str();
+
+					while let Some(idx) = remaining.find('\n') {
+						line_inc += 1;
+						remaining = &remaining[idx+1..];
+					}
+					let char_inc = remaining.len();
+
+					self.lookahead.line += line_inc;
+
+					if line_inc > 0 {
+						self.lookahead.character = char_inc;
+					} else {
+						self.lookahead.character += char_inc;
+					}
+				} else {
+					self.lookahead.character += end;
+				}
 
 				let span = Span {
 					start: self.current,

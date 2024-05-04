@@ -4,6 +4,15 @@ use gramatika::{DebugLisp, Span, Substr, Token as _};
 
 #[derive(DebugLispToken, PartialEq, Token, Lexer)]
 pub enum Token {
+	#[discard]
+	#[pattern = "//.*"]
+	LineComment(Substr, Span),
+
+	#[discard]
+	#[multiline]
+	#[pattern = r"/\*.*?\*/"]
+	BlockComment(Substr, Span),
+
 	#[subset_of(Ident)]
 	#[pattern = "and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while"]
 	Keyword(Substr, Span),
