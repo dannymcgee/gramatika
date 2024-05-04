@@ -79,7 +79,26 @@ pub fn derive(input: TokenStream) -> TokenStream {
 						),*};
 						let lexeme = self.remaining.substr(start..end);
 
-						self.lookahead.character += end;
+						if #kind_ident::multilines().contains(&kind) {
+							let mut line_inc = 0_usize;
+							let mut remaining = lexeme.as_str();
+
+							while let Some(idx) = remaining.find('\n') {
+								line_inc += 1;
+								remaining = &remaining[idx+1..];
+							}
+							let char_inc = remaining.len();
+
+							self.lookahead.line += line_inc;
+
+							if line_inc > 0 {
+								self.lookahead.character = char_inc;
+							} else {
+								self.lookahead.character += char_inc;
+							}
+						} else {
+							self.lookahead.character += end;
+						}
 
 						let span = ::gramatika::Span {
 							start: self.current,

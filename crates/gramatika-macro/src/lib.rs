@@ -7,7 +7,7 @@ mod regex;
 mod token;
 mod traversal;
 
-#[proc_macro_derive(Token, attributes(pattern, subset_of, discard))]
+#[proc_macro_derive(Token, attributes(pattern, subset_of, discard, multiline))]
 pub fn derive_token(input: TokenStream) -> TokenStream {
 	token::derive(input)
 }

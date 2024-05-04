@@ -22,7 +22,7 @@ pub fn proc(input: pm::TokenStream) -> pm::TokenStream {
 		})
 		.join("|");
 
-	compile(&pattern).unwrap().into()
+	compile(&pattern, false).unwrap().into()
 }
 
 pub fn token_impls(kind_ident: &Ident, variants: &[Variant]) -> Vec<pm2::TokenStream> {
@@ -38,12 +38,17 @@ fn token_impl(
 	variant: &Variant,
 	subset_matchers: &HashMap<Variant, Vec<Variant>>,
 ) -> pm2::TokenStream {
-	let VariantAttrs { patterns, .. } = common::extract_variant_attrs(variant);
+	let VariantAttrs {
+		patterns,
+		multiline,
+		..
+	} = common::extract_variant_attrs(variant);
+
 	if patterns.is_empty() {
 		return quote! {};
 	}
 
-	let init = match init_expr(patterns) {
+	let init = match init_expr(patterns, multiline) {
 		Ok(regex) => Some(regex),
 		Err(err) => panic!("{}", err),
 	}
@@ -152,8 +157,11 @@ fn match_impl_body(
 	}
 }
 
-fn compile(pattern: &str) -> anyhow::Result<pm2::TokenStream> {
-	let re = RegexBuilder::new().anchored(true).build_sparse(pattern)?;
+fn compile(pattern: &str, dotall: bool) -> anyhow::Result<pm2::TokenStream> {
+	let re = RegexBuilder::new()
+		.anchored(true)
+		.dot_matches_new_line(dotall)
+		.build_sparse(pattern)?;
 
 	let fwd = re.forward().to_u32()?.to_bytes_native_endian()?;
 	let fwd = fwd
@@ -179,12 +187,15 @@ fn compile(pattern: &str) -> anyhow::Result<pm2::TokenStream> {
 	Ok(regex)
 }
 
-fn init_expr(patterns: Vec<Literal>) -> anyhow::Result<pm2::TokenStream> {
+fn init_expr(
+	patterns: Vec<Literal>,
+	multiline: bool,
+) -> anyhow::Result<pm2::TokenStream> {
 	if patterns.len() == 1 {
 		let lit = patterns.into_iter().last().unwrap();
 		let pattern = from_literal(&lit);
 
-		compile(&pattern)
+		compile(&pattern, multiline)
 	} else {
 		let combined = patterns
 			.iter()
@@ -194,7 +205,7 @@ fn init_expr(patterns: Vec<Literal>) -> anyhow::Result<pm2::TokenStream> {
 			})
 			.join("|");
 
-		compile(&combined)
+		compile(&combined, multiline)
 	}
 }
 

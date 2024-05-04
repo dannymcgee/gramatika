@@ -55,6 +55,32 @@ var bar = foo + foo;
 }
 
 #[test]
+fn multi_line_token() {
+	use self::Token::*;
+
+	let input = "
+/**
+ * Here's a block comment!
+ */
+var foo = 2 + 2;
+	";
+	let mut lexer = Lexer::new(input.into());
+	let tokens = lexer.scan();
+
+	let expected = vec![
+		Keyword("var".into(), span![4:0...4:3]),
+		Ident("foo".into(), span![4:4...4:7]),
+		Operator("=".into(), span![4:8...4:9]),
+		NumLit("2".into(), span![4:10...4:11]),
+		Operator("+".into(), span![4:12...4:13]),
+		NumLit("2".into(), span![4:14...4:15]),
+		Punct(";".into(), span![4:15...4:16]),
+	];
+
+	assert_eq!(tokens, expected);
+}
+
+#[test]
 fn ident_with_digit() {
 	let input = "foo2";
 	let mut lexer = Lexer::new(ArcStr::from(input));

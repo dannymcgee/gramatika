@@ -75,12 +75,14 @@ pub struct VariantAttrs {
 	pub subset: Option<Ident>,
 	pub patterns: Vec<Literal>,
 	pub discard: bool,
+	pub multiline: bool,
 }
 
 pub fn extract_variant_attrs(variant: &Variant) -> VariantAttrs {
 	let mut subset = None;
 	let mut patterns = vec![];
 	let mut discard = false;
+	let mut multiline = false;
 
 	for attr in variant.attrs.iter() {
 		match attr.path.get_ident() {
@@ -102,6 +104,9 @@ pub fn extract_variant_attrs(variant: &Variant) -> VariantAttrs {
 					_ => None,
 				});
 			}
+			Some(ident) if ident == "multiline" => {
+				multiline = true;
+			}
 			Some(ident) if ident == "discard" => {
 				discard = true;
 			}
@@ -113,6 +118,7 @@ pub fn extract_variant_attrs(variant: &Variant) -> VariantAttrs {
 		subset,
 		patterns,
 		discard,
+		multiline,
 	}
 }
 

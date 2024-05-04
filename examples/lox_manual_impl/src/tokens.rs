@@ -12,7 +12,9 @@ use gramatika::{
 #[derive(PartialEq)]
 pub enum Token {
 	// //.*
-	Comment(Substr, Span),
+	LineComment(Substr, Span),
+	// /\*.*?\*/
+	BlockComment(Substr, Span),
 	// and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while
 	Keyword(Substr, Span),
 	// [a-zA-Z_][a-zA-Z0-9_]*
@@ -32,7 +34,8 @@ pub enum Token {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TokenKind {
-	Comment,
+	LineComment,
+	BlockComment,
 	Keyword,
 	Ident,
 	Brace,
@@ -42,14 +45,19 @@ pub enum TokenKind {
 	StrLit,
 }
 
+macro_rules! count {
+	() => (0_usize);
+	($current:tt $($remaining:tt)*) => (1_usize + count!( $($remaining)* ));
+}
+
 macro_rules! hash_set {
 	($($elem:path),+ $(,)?) => {{
-		let mut set = ::std::collections::HashSet::with_capacity(1);
+		let mut set = ::std::collections::HashSet::with_capacity(count!( $($elem)* ));
 		$( set.insert($elem); )+
 		set
 	}};
 	() => {
-		::std::collections::HashSet::with_capacity(1)
+		::std::collections::HashSet::default()
 	};
 }
 
@@ -59,7 +67,15 @@ impl TokenKind {
 
 		static DISCARDS: OnceCell<HashSet<TokenKind>> = OnceCell::new();
 
-		DISCARDS.get_or_init(|| hash_set![TokenKind::Comment])
+		DISCARDS
+			.get_or_init(|| hash_set![TokenKind::LineComment, TokenKind::BlockComment])
+	}
+	pub(crate) fn multilines() -> &'static ::std::collections::HashSet<TokenKind> {
+		use ::std::collections::HashSet;
+
+		static MULTILINES: OnceCell<HashSet<TokenKind>> = OnceCell::new();
+
+		MULTILINES.get_or_init(|| hash_set![TokenKind::BlockComment])
 	}
 }
 
@@ -67,7 +83,8 @@ impl TokenKind {
 impl Token {
 	pub fn as_inner(&self) -> (Substr, Span) {
 		match self {
-			Token::Comment(lexeme, span) => (lexeme.clone(), *span),
+			Token::LineComment(lexeme, span) => (lexeme.clone(), *span),
+			Token::BlockComment(lexeme, span) => (lexeme.clone(), *span),
 			Token::Keyword(lexeme, span) => (lexeme.clone(), *span),
 			Token::Ident(lexeme, span) => (lexeme.clone(), *span),
 			Token::Brace(lexeme, span) => (lexeme.clone(), *span),
@@ -79,8 +96,11 @@ impl Token {
 	}
 
 	// Constructors
-	pub fn comment(lexeme: Substr, span: Span) -> Self {
-		Self::Comment(lexeme, span)
+	pub fn line_comment(lexeme: Substr, span: Span) -> Self {
+		Self::LineComment(lexeme, span)
+	}
+	pub fn block_comment(lexeme: Substr, span: Span) -> Self {
+		Self::BlockComment(lexeme, span)
 	}
 	pub fn keyword(lexeme: Substr, span: Span) -> Self {
 		Self::Keyword(lexeme, span)
@@ -104,143 +124,106 @@ impl Token {
 		Self::StrLit(lexeme, span)
 	}
 
-	// Pattern getters
-	fn comment_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
-
-		PATTERN.get_or_init(|| {
+	#[inline]
+	fn init_regex(
+		pattern: &str,
+		dotall: bool,
+	) -> impl FnOnce() -> RwLock<Regex<SparseDFA<Vec<u8>, u32>>> + '_ {
+		move || {
 			let re = RegexBuilder::new()
 				.anchored(true)
-				.build_sparse("//.*")
+				.dot_matches_new_line(dotall)
+				.build_sparse(pattern)
 				.unwrap();
 
 			let fwd = re.forward().to_u32().unwrap();
 			let rev = re.reverse().to_u32().unwrap();
 
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+			RwLock::new(Regex::from_dfas(fwd, rev))
+		}
 	}
+
+	// Pattern getters
+	fn line_comment_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(Self::init_regex("//.*", false))
+	}
+
+	fn block_comment_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
+		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
+			OnceCell::new();
+
+		PATTERN.get_or_init(Self::init_regex(r"/\*.*?\*/", true))
+	}
+
 	fn keyword_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
 		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
 			OnceCell::new();
 
-		PATTERN.get_or_init(|| {
-			let re = RegexBuilder::new()
-				.anchored(true)
-				.build_sparse("and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while")
-				.unwrap();
-
-			let fwd = re.forward().to_u32().unwrap();
-			let rev = re.reverse().to_u32().unwrap();
-
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+		PATTERN.get_or_init(Self::init_regex(
+			"and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while",
+			false,
+		))
 	}
+
 	fn ident_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
 		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
 			OnceCell::new();
 
-		PATTERN.get_or_init(|| {
-			let re = RegexBuilder::new()
-				.anchored(true)
-				.build_sparse("[a-zA-Z_][a-zA-Z0-9_]*")
-				.unwrap();
-
-			let fwd = re.forward().to_u32().unwrap();
-			let rev = re.reverse().to_u32().unwrap();
-
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+		PATTERN.get_or_init(Self::init_regex("[a-zA-Z_][a-zA-Z0-9_]*", false))
 	}
+
 	fn brace_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
 		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
 			OnceCell::new();
 
-		PATTERN.get_or_init(|| {
-			let re = RegexBuilder::new()
-				.anchored(true)
-				.build_sparse(r"[(){}]")
-				.unwrap();
-
-			let fwd = re.forward().to_u32().unwrap();
-			let rev = re.reverse().to_u32().unwrap();
-
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+		PATTERN.get_or_init(Self::init_regex(r"[(){}]", false))
 	}
+
 	fn punct_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
 		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
 			OnceCell::new();
 
-		PATTERN.get_or_init(|| {
-			let re = RegexBuilder::new()
-				.anchored(true)
-				.build_sparse(r"[,.;]")
-				.unwrap();
-
-			let fwd = re.forward().to_u32().unwrap();
-			let rev = re.reverse().to_u32().unwrap();
-
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+		PATTERN.get_or_init(Self::init_regex(r"[,.;]", false))
 	}
+
 	fn operator_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
 		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
 			OnceCell::new();
 
-		PATTERN.get_or_init(|| {
-			let re = RegexBuilder::new()
-				.anchored(true)
-				.build_sparse(r"([=!<>]=?|[-+*/])")
-				.unwrap();
-
-			let fwd = re.forward().to_u32().unwrap();
-			let rev = re.reverse().to_u32().unwrap();
-
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+		PATTERN.get_or_init(Self::init_regex(r"([=!<>]=?|[-+*/])", false))
 	}
+
 	fn num_lit_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
 		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
 			OnceCell::new();
 
-		PATTERN.get_or_init(|| {
-			let re = RegexBuilder::new()
-				.anchored(true)
-				.build_sparse(r"[0-9]+")
-				.unwrap();
-
-			let fwd = re.forward().to_u32().unwrap();
-			let rev = re.reverse().to_u32().unwrap();
-
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+		PATTERN.get_or_init(Self::init_regex(r"[0-9]+", false))
 	}
+
 	fn str_lit_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
 		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
 			OnceCell::new();
 
-		PATTERN.get_or_init(|| {
-			let re = RegexBuilder::new()
-				.anchored(true)
-				.build_sparse("\"[^\"]*\"")
-				.unwrap();
-
-			let fwd = re.forward().to_u32().unwrap();
-			let rev = re.reverse().to_u32().unwrap();
-
-			RwLock::new(Regex::<SparseDFA<Vec<u8>, u32>>::from_dfas(fwd, rev))
-		})
+		PATTERN.get_or_init(Self::init_regex("\"[^\"]*\"", false))
 	}
 
 	// Matchers
-	pub fn match_comment(input: &str) -> Option<(usize, usize, TokenKind)> {
-		Self::comment_pattern()
+	pub fn match_line_comment(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::line_comment_pattern()
 			.read()
 			.unwrap()
 			.find(input.as_bytes())
-			.map(|(start, end)| (start, end, TokenKind::Comment))
+			.map(|(start, end)| (start, end, TokenKind::LineComment))
+	}
+	pub fn match_block_comment(input: &str) -> Option<(usize, usize, TokenKind)> {
+		Self::block_comment_pattern()
+			.read()
+			.unwrap()
+			.find(input.as_bytes())
+			.map(|(start, end)| (start, end, TokenKind::BlockComment))
 	}
 	pub fn match_ident(input: &str) -> Option<(usize, usize, TokenKind)> {
 		match Self::ident_pattern().read().unwrap().find(input.as_bytes()) {
@@ -425,7 +408,8 @@ impl Clone for Token {
 		use Token::*;
 
 		match self {
-			Comment(lexeme, span) => Comment(lexeme.clone(), *span),
+			LineComment(lexeme, span) => LineComment(lexeme.clone(), *span),
+			BlockComment(lexeme, span) => BlockComment(lexeme.clone(), *span),
 			Keyword(lexeme, span) => Keyword(lexeme.clone(), *span),
 			Ident(lexeme, span) => Ident(lexeme.clone(), *span),
 			Brace(lexeme, span) => Brace(lexeme.clone(), *span),
@@ -448,7 +432,8 @@ impl gramatika::Token for Token {
 		use Token::*;
 
 		match self {
-			Comment(_, _) => TokenKind::Comment,
+			LineComment(_, _) => TokenKind::LineComment,
+			BlockComment(_, _) => TokenKind::BlockComment,
 			Keyword(_, _) => TokenKind::Keyword,
 			Ident(_, _) => TokenKind::Ident,
 			Brace(_, _) => TokenKind::Brace,
@@ -461,7 +446,12 @@ impl gramatika::Token for Token {
 
 	fn as_matchable(&self) -> (Self::Kind, &str, Span) {
 		match self {
-			Token::Comment(lex, span) => (TokenKind::Comment, lex.as_str(), *span),
+			Token::LineComment(lex, span) => {
+				(TokenKind::LineComment, lex.as_str(), *span)
+			}
+			Token::BlockComment(lex, span) => {
+				(TokenKind::BlockComment, lex.as_str(), *span)
+			}
 			Token::Keyword(lex, span) => (TokenKind::Keyword, lex.as_str(), *span),
 			Token::Ident(lex, span) => (TokenKind::Ident, lex.as_str(), *span),
 			Token::Brace(lex, span) => (TokenKind::Brace, lex.as_str(), *span),
