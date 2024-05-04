@@ -10,13 +10,13 @@ fn it_works() {
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Keyword(literal_substr!("var"), span![0:0...0:3]),
-		Ident(literal_substr!("foo"), span![0:4...0:7]),
-		Operator(literal_substr!("="), span![0:8...0:9]),
-		NumLit(literal_substr!("2"), span![0:10...0:11]),
-		Operator(literal_substr!("+"), span![0:12...0:13]),
-		NumLit(literal_substr!("2"), span![0:14...0:15]),
-		Punct(literal_substr!(";"), span![0:15...0:16]),
+		Keyword(literal_substr!("var"), span![1:1..1:4]),
+		Ident(literal_substr!("foo"), span![1:5..1:8]),
+		Operator(literal_substr!("="), span![1:9..1:10]),
+		NumLit(literal_substr!("2"), span![1:11..1:12]),
+		Operator(literal_substr!("+"), span![1:13..1:14]),
+		NumLit(literal_substr!("2"), span![1:15..1:16]),
+		Punct(literal_substr!(";"), span![1:16..1:17]),
 	];
 
 	assert_eq!(tokens, expected);
@@ -34,21 +34,21 @@ var bar = foo + foo;
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Keyword(literal_substr!("var"), span![1:0...1:3]),
-		Ident(literal_substr!("foo"), span![1:4...1:7]),
-		Operator(literal_substr!("="), span![1:8...1:9]),
-		NumLit(literal_substr!("2"), span![1:10...1:11]),
-		Operator(literal_substr!("+"), span![1:12...1:13]),
-		NumLit(literal_substr!("2"), span![1:14...1:15]),
-		Punct(literal_substr!(";"), span![1:15...1:16]),
+		Keyword(literal_substr!("var"), span![2:1..2:4]),
+		Ident(literal_substr!("foo"), span![2:5..2:8]),
+		Operator(literal_substr!("="), span![2:9..2:10]),
+		NumLit(literal_substr!("2"), span![2:11..2:12]),
+		Operator(literal_substr!("+"), span![2:13..2:14]),
+		NumLit(literal_substr!("2"), span![2:15..2:16]),
+		Punct(literal_substr!(";"), span![2:16..2:17]),
 		// ...
-		Keyword(literal_substr!("var"), span![2:0...2:3]),
-		Ident(literal_substr!("bar"), span![2:4...2:7]),
-		Operator(literal_substr!("="), span![2:8...2:9]),
-		Ident(literal_substr!("foo"), span![2:10...2:13]),
-		Operator(literal_substr!("+"), span![2:14...2:15]),
-		Ident(literal_substr!("foo"), span![2:16...2:19]),
-		Punct(literal_substr!(";"), span![2:19...2:20]),
+		Keyword(literal_substr!("var"), span![3:1..3:4]),
+		Ident(literal_substr!("bar"), span![3:5..3:8]),
+		Operator(literal_substr!("="), span![3:9..3:10]),
+		Ident(literal_substr!("foo"), span![3:11..3:14]),
+		Operator(literal_substr!("+"), span![3:15..3:16]),
+		Ident(literal_substr!("foo"), span![3:17..3:20]),
+		Punct(literal_substr!(";"), span![3:20..3:21]),
 	];
 
 	assert_eq!(tokens, expected);
@@ -68,13 +68,13 @@ var foo = 2 + 2;
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Keyword("var".into(), span![4:0...4:3]),
-		Ident("foo".into(), span![4:4...4:7]),
-		Operator("=".into(), span![4:8...4:9]),
-		NumLit("2".into(), span![4:10...4:11]),
-		Operator("+".into(), span![4:12...4:13]),
-		NumLit("2".into(), span![4:14...4:15]),
-		Punct(";".into(), span![4:15...4:16]),
+		Keyword(literal_substr!("var"), span![5:1..5:4]),
+		Ident(literal_substr!("foo"), span![5:5..5:8]),
+		Operator(literal_substr!("="), span![5:9..5:10]),
+		NumLit(literal_substr!("2"), span![5:11..5:12]),
+		Operator(literal_substr!("+"), span![5:13..5:14]),
+		NumLit(literal_substr!("2"), span![5:15..5:16]),
+		Punct(literal_substr!(";"), span![5:16..5:17]),
 	];
 
 	assert_eq!(tokens, expected);
@@ -88,6 +88,6 @@ fn ident_with_digit() {
 
 	assert_eq!(
 		tokens,
-		vec![Token::Ident(literal_substr!("foo2"), span![0:0...0:4])]
+		vec![Token::Ident(literal_substr!("foo2"), span![1:1..1:5])]
 	);
 }

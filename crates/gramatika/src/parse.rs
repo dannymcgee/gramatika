@@ -187,13 +187,13 @@ where
 	/// let input = "ab";
 	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
 	///
-	/// assert_eq!(parser.peek(), Some(&Token::Ab("ab".into(), span![0:0...0:2])));
+	/// assert_eq!(parser.peek(), Some(&Token::Ab("ab".into(), span![1:1..1:3])));
 	///
 	/// let a = parser.split_next(1, (Token::a, Token::b)).unwrap();
 	/// let b = parser.next().unwrap();
 	///
-	/// assert_eq!(a, Token::A("a".into(), span![0:0...0:1]));
-	/// assert_eq!(b, Token::B("b".into(), span![0:1...0:2]));
+	/// assert_eq!(a, Token::A("a".into(), span![1:1..1:2]));
+	/// assert_eq!(b, Token::B("b".into(), span![1:2..1:3]));
 	///
 	/// # }
 	/// ```

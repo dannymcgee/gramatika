@@ -49,6 +49,12 @@ macro_rules! span {
 	($start_line:literal:$start_char:literal...$end_line:literal:$end_char:literal) => {
 		::gramatika::Span::new(($start_line, $start_char), ($end_line, $end_char))
 	};
+	($start_line:literal : $start_char:literal .. $end_line:literal : $end_char:literal) => {
+		::gramatika::Span::new(
+			($start_line - 1, $start_char - 1),
+			($end_line - 1, $end_char - 1),
+		)
+	};
 }
 
 impl Span {
@@ -79,7 +85,7 @@ impl Span {
 
 impl fmt::Debug for Span {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{:?}...{:?}", self.start, self.end)
+		write!(f, "{:?}..{:?}", self.start, self.end)
 	}
 }
 

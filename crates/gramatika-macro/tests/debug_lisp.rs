@@ -122,14 +122,14 @@ fn main() {
 	let ast = Program {
 		exprs: vec![Expr::Binary(BinaryExpr {
 			lhs: Box::new(Expr::Primary(PrimaryExpr {
-				token: Token::Literal("3".into(), span![0:0...0:1]),
+				token: Token::Literal("3".into(), span![1:1..1:2]),
 				maybe: None,
 			})),
-			op: Token::Operator("+".into(), span![0:2...0:3]),
+			op: Token::Operator("+".into(), span![1:3..1:4]),
 			rhs: Box::new(Expr::Unary(UnaryExpr {
-				op: Token::Operator("-".into(), span![0:4...0:5]),
+				op: Token::Operator("-".into(), span![1:5..1:6]),
 				rhs: Box::new(Expr::Primary(PrimaryExpr {
-					token: Token::Literal("2".into(), span![0:5...0:6]),
+					token: Token::Literal("2".into(), span![1:6..1:7]),
 					maybe: None,
 				})),
 			})),
@@ -142,13 +142,13 @@ fn main() {
   exprs: [
     (Expr::Binary (BinaryExpr
       lhs: (Expr::Primary (PrimaryExpr
-        token: `3` (Literal (1:1...1:2)),
+        token: `3` (Literal (1:1..1:2)),
       )),
-      op: `+` (Operator (1:3...1:4)),
+      op: `+` (Operator (1:3..1:4)),
       rhs: (Expr::Unary (UnaryExpr
-        op: `-` (Operator (1:5...1:6)),
+        op: `-` (Operator (1:5..1:6)),
         rhs: (Expr::Primary (PrimaryExpr
-          token: `2` (Literal (1:6...1:7)),
+          token: `2` (Literal (1:6..1:7)),
         )),
       )),
     )),
