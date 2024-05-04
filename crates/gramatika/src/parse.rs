@@ -165,7 +165,7 @@ where
 		split_at: usize,
 		ctors: (TokenCtor<T>, TokenCtor<T>),
 	) -> Result<T> {
-		let Some(next) = self.next() else {
+		let Some(next) = self.peek.take().or_else(|| self.lexer.scan_token()) else {
 			return Err(SpannedError {
 				message: "Unexpected end of input".into(),
 				source: self.source(),
@@ -208,14 +208,8 @@ where
 			},
 		);
 
-		assert!(
-			self.peek.is_none(),
-			"Expected the peek buffer to be empty. \
-				This is a bug in gramatika, please report it here: \
-				https://github.com/dannymcgee/gramatika/issues"
-		);
-
 		self.peek = Some(peek);
+		self.tokens.push(next.clone());
 
 		Ok(next)
 	}
