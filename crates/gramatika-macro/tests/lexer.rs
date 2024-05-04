@@ -128,13 +128,13 @@ fn main() {
 	let tokens = lexer.scan();
 
 	let expected = vec![
-		Token::keyword("let".into(), span![0:0...0:3]),
-		Token::override_test("foo".into(), span![0:4...0:7]),
-		Token::operator("=".into(), span![0:8...0:9]),
-		Token::literal("2".into(), span![0:10...0:11]),
-		Token::operator("+".into(), span![0:12...0:13]),
-		Token::literal("2".into(), span![0:14...0:15]),
-		Token::punct(";".into(), span![0:15...0:16]),
+		Token::keyword("let".into(), span![1:1..1:4]),
+		Token::override_test("foo".into(), span![1:5..1:8]),
+		Token::operator("=".into(), span![1:9..1:10]),
+		Token::literal("2".into(), span![1:11..1:12]),
+		Token::operator("+".into(), span![1:13..1:14]),
+		Token::literal("2".into(), span![1:15..1:16]),
+		Token::punct(";".into(), span![1:16..1:17]),
 	];
 
 	assert_eq!(tokens, expected);
