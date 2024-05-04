@@ -128,7 +128,7 @@ impl Token {
 	fn init_regex(
 		pattern: &str,
 		dotall: bool,
-	) -> impl FnOnce() -> RwLock<Regex<SparseDFA<Vec<u8>, u32>>> + '_ {
+	) -> impl FnOnce() -> Regex<SparseDFA<Vec<u8>, u32>> + '_ {
 		move || {
 			let re = RegexBuilder::new()
 				.anchored(true)
@@ -139,28 +139,25 @@ impl Token {
 			let fwd = re.forward().to_u32().unwrap();
 			let rev = re.reverse().to_u32().unwrap();
 
-			RwLock::new(Regex::from_dfas(fwd, rev))
+			Regex::from_dfas(fwd, rev)
 		}
 	}
 
 	// Pattern getters
-	fn line_comment_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn line_comment_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex("//.*", false))
 	}
 
-	fn block_comment_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn block_comment_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"/\*.*?\*/", true))
 	}
 
-	fn keyword_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn keyword_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(
 			"and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while",
@@ -168,44 +165,38 @@ impl Token {
 		))
 	}
 
-	fn ident_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn ident_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex("[a-zA-Z_][a-zA-Z0-9_]*", false))
 	}
 
-	fn brace_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn brace_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"[(){}]", false))
 	}
 
-	fn punct_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn punct_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"[,.;]", false))
 	}
 
-	fn operator_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn operator_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"([=!<>]=?|[-+*/])", false))
 	}
 
-	fn num_lit_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn num_lit_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"[0-9]+", false))
 	}
 
-	fn str_lit_pattern() -> &'static RwLock<Regex<SparseDFA<Vec<u8>, u32>>> {
-		static PATTERN: OnceCell<RwLock<Regex<SparseDFA<Vec<u8>, u32>>>> =
-			OnceCell::new();
+	fn str_lit_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
+		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex("\"[^\"]*\"", false))
 	}
@@ -213,25 +204,17 @@ impl Token {
 	// Matchers
 	pub fn match_line_comment(input: &str) -> Option<(usize, usize, TokenKind)> {
 		Self::line_comment_pattern()
-			.read()
-			.unwrap()
 			.find(input.as_bytes())
 			.map(|(start, end)| (start, end, TokenKind::LineComment))
 	}
 	pub fn match_block_comment(input: &str) -> Option<(usize, usize, TokenKind)> {
 		Self::block_comment_pattern()
-			.read()
-			.unwrap()
 			.find(input.as_bytes())
 			.map(|(start, end)| (start, end, TokenKind::BlockComment))
 	}
 	pub fn match_ident(input: &str) -> Option<(usize, usize, TokenKind)> {
-		match Self::ident_pattern().read().unwrap().find(input.as_bytes()) {
-			Some((start, end)) => match Self::keyword_pattern()
-				.read()
-				.unwrap()
-				.find(input.as_bytes())
-			{
+		match Self::ident_pattern().find(input.as_bytes()) {
+			Some((start, end)) => match Self::keyword_pattern().find(input.as_bytes()) {
 				Some((s, e)) if s == start && e == end => {
 					Some((start, end, TokenKind::Keyword))
 				}
@@ -242,36 +225,26 @@ impl Token {
 	}
 	pub fn match_brace(input: &str) -> Option<(usize, usize, TokenKind)> {
 		Self::brace_pattern()
-			.read()
-			.unwrap()
 			.find(input.as_bytes())
 			.map(|(start, end)| (start, end, TokenKind::Brace))
 	}
 	pub fn match_punct(input: &str) -> Option<(usize, usize, TokenKind)> {
 		Self::punct_pattern()
-			.read()
-			.unwrap()
 			.find(input.as_bytes())
 			.map(|(start, end)| (start, end, TokenKind::Punct))
 	}
 	pub fn match_operator(input: &str) -> Option<(usize, usize, TokenKind)> {
 		Self::operator_pattern()
-			.read()
-			.unwrap()
 			.find(input.as_bytes())
 			.map(|(start, end)| (start, end, TokenKind::Operator))
 	}
 	pub fn match_num_lit(input: &str) -> Option<(usize, usize, TokenKind)> {
 		Self::num_lit_pattern()
-			.read()
-			.unwrap()
 			.find(input.as_bytes())
 			.map(|(start, end)| (start, end, TokenKind::NumLit))
 	}
 	pub fn match_str_lit(input: &str) -> Option<(usize, usize, TokenKind)> {
 		Self::str_lit_pattern()
-			.read()
-			.unwrap()
 			.find(input.as_bytes())
 			.map(|(start, end)| (start, end, TokenKind::StrLit))
 	}

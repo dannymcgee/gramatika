@@ -29,7 +29,7 @@ pub trait ParseStreamer {
 	/// Provides a more convenient API for parsing other implementers of the [`Parse`]
 	/// trait.
 	///
-	/// ```
+	/// ```ignore
 	/// impl Parse for MyParentNode {
 	///     type Stream = MyStream;
 	///
