@@ -966,7 +966,9 @@ where
 		let found = self
 			.tokens
 			.iter_mut()
+			.rev()
 			.find(|tok| tok.span() == token.span());
+
 		if let Some(tok) = found {
 			*tok = Self::upcast(token, convert);
 			Ok(tok.clone())
