@@ -27,16 +27,22 @@ pub fn derive_debug_lisp_token(input: TokenStream) -> TokenStream {
 	debug_lisp::derive_token(input)
 }
 
+/// Experimental
+#[doc(hidden)]
 #[proc_macro]
 pub fn regex(input: TokenStream) -> TokenStream {
 	regex::proc(input)
 }
 
+/// Experimental
+#[doc(hidden)]
 #[proc_macro]
 pub fn visitor(input: TokenStream) -> TokenStream {
 	traversal::visitor(input)
 }
 
+/// Experimental
+#[doc(hidden)]
 #[proc_macro]
 pub fn walker(input: TokenStream) -> TokenStream {
 	traversal::walker(input)

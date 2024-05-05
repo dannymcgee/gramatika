@@ -1,5 +1,5 @@
 use crate::{tokens::Token, Lexer};
-use gramatika::{ArcStr, Lexer as _};
+use gramatika::{arcstr::literal_substr, ArcStr, Lexer as _};
 
 #[test]
 fn it_works() {

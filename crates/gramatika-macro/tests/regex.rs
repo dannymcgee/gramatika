@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate gramatika_macro;
 
-use regex_automata::{Regex, SparseDFA};
-
 fn main() {
 	let ident = regex!["[a-zA-Z_][a-zA-Z0-9_]*"];
 	let keyword = regex![

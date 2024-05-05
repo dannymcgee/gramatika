@@ -11,8 +11,8 @@ use crate::{
 pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let ast = parse_macro_input!(input as DeriveInput);
 	let vis = &ast.vis;
-	let ident = &ast.ident;
-	let kind_ident = format_ident!("{}Kind", ident);
+	let token_ident = &ast.ident;
+	let kind_ident = format_ident!("{}Kind", token_ident);
 	let generics = &ast.generics;
 
 	let variants = common::expand_variants(&ast.data);
@@ -117,7 +117,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			}
 		}
 
-		impl #generics #ident #generics {
+		impl #generics #token_ident #generics {
 			pub fn as_inner(&self) -> (::gramatika::Substr, ::gramatika::Span) {
 				match self {#(
 					Self::#variant_ident(lexeme, span) => (lexeme.clone(), *span)
@@ -135,13 +135,13 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			#[allow(unused_macros)]
 			macro_rules! #ctor_ident {
 				($lexeme:literal) => {
-					#ident::#ctor_ident(
+					#token_ident::#ctor_ident(
 						::gramatika::arcstr::literal_substr!($lexeme),
 						::gramatika::Span::default(),
 					)
 				};
 				($lexeme:tt) => {
-					#ident::#ctor_ident(
+					#token_ident::#ctor_ident(
 						::gramatika::arcstr::literal_substr!(stringify!($lexeme)),
 						::gramatika::Span::default(),
 					)
@@ -152,7 +152,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			pub(crate) use #ctor_ident;
 		)*
 
-		impl #generics ::gramatika::Token for #ident #generics {
+		impl #generics ::gramatika::Token for #token_ident #generics {
 			type Kind = #kind_ident;
 
 			fn lexeme(&self) -> ::gramatika::Substr {
@@ -161,13 +161,13 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 
 			fn kind(&self) -> #kind_ident {
 				match self {
-					#(#ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
+					#(#token_ident::#variant_ident(_, _) => #kind_ident::#variant_ident),*
 				}
 			}
 
 			fn as_matchable(&self) -> (#kind_ident, &str, ::gramatika::Span) {
 				match self {#(
-					#ident::#variant_ident(lexeme, span) => (
+					#token_ident::#variant_ident(lexeme, span) => (
 						#kind_ident::#variant_ident,
 						lexeme.as_str(),
 						*span,
@@ -176,16 +176,18 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 			}
 		}
 
-		impl #generics ::gramatika::Spanned for #ident #generics {
+		impl #generics ::gramatika::Spanned for #token_ident #generics {
 			fn span(&self) -> ::gramatika::Span {
 				self.as_inner().1
 			}
 		}
 
-		impl #generics Clone for #ident #generics {
+		impl #generics Clone for #token_ident #generics {
 			fn clone(&self) -> Self {
 				match self {#(
-					#ident::#variant_ident(lexeme, span) => #ident::#variant_ident(lexeme.clone(), *span)
+					#token_ident::#variant_ident(lexeme, span) => {
+						#token_ident::#variant_ident(lexeme.clone(), *span)
+					}
 				),*}
 			}
 		}
