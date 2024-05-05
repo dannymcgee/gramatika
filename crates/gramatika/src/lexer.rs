@@ -203,8 +203,7 @@
 //!
 //! The `#[pattern]` attribute accepts the same syntax and features as the Rust
 //! [`regex` crate]. Those patterns are compiled to [deterministic finite automata]
-//! when your Rust crate is compiled, and used by the generated lexer to find
-//! token matches in an input string.
+//!  and used by the generated lexer to find token matches in an input string.
 //!
 //! [`regex` crate]: https://docs.rs/regex/latest/regex/
 //! [deterministic finite automata]: https://swtch.com/~rsc/regexp/regexp1.html
