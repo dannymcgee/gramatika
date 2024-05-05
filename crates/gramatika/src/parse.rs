@@ -6,6 +6,8 @@ use crate::{Lexer, Position, Result, Span, Spanned, SpannedError, Token};
 
 pub type TokenCtor<T> = fn(Substr, Span) -> T;
 
+/// A trait to be implemented by any type that can be parsed using the
+/// [`ParseStreamer`] interface.
 pub trait Parse
 where Self: Sized
 {
@@ -14,9 +16,18 @@ where Self: Sized
 	fn parse(input: &mut Self::Stream) -> Result<Self>;
 }
 
+/// A user-friendly interface for implementing a hand-written LL(1) or recursive
+/// descent parser with backtracking.
+///
+/// It serves as the `input` parameter for the [`Parse`] trait's
+/// [`parse`](Parse::parse) method, allowing the implementation of a full syntax
+/// tree parser to be broken up into discrete [`Parse`] implementations for each
+/// node in the tree.
 pub trait ParseStreamer {
 	type Token: Token + Spanned;
 
+	/// Experimental
+	#[doc(hidden)]
 	#[allow(unused_variables)]
 	fn with_runtime_matcher<F>(self, matcher: F) -> Self
 	where
@@ -26,25 +37,47 @@ pub trait ParseStreamer {
 		self
 	}
 
-	/// Provides a more convenient API for parsing other implementers of the [`Parse`]
-	/// trait.
+	/// Provides a more convenient API for parsing other implementers of the
+	/// [`Parse`] trait.
 	///
-	/// ```ignore
-	/// impl Parse for MyParentNode {
-	///     type Stream = MyStream;
-	///
-	///     fn parse(input: &mut Self::Stream) -> Result<Self> {
-	///         let foo_child = input.parse()?;
-	///         let bar_child = input.parse()?;
-	///         let baz_child = input.parse()?;
-	///
-	///         Ok(Self {
-	///             foo_child,
-	///             bar_child,
-	///             baz_child,
-	///         })
-	///     }
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug)]
+	/// enum Token {
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
 	/// }
+	///
+	/// #[derive(Debug)]
+	/// struct IdentExpr(Token);
+	///
+	/// impl Parse for IdentExpr {
+	///     // ...
+	/// #     type Stream = ParseStream<Token, Lexer>;
+	/// #
+	/// #     fn parse(input: &mut Self::Stream) -> gramatika::Result<Self> {
+	/// #         Ok(Self(input.consume_kind(TokenKind::Ident)?))
+	/// #     }
+	/// }
+	///
+	/// let input = "foo bar baz";
+	/// let mut parser = ParseStream::from(input);
+	///
+	/// let foo = IdentExpr::parse(&mut parser)?;
+	/// let bar: IdentExpr = parser.parse()?;
+	/// let baz = parser.parse::<IdentExpr>()?;
+	///
+	/// # Ok(())
+	/// # }
 	/// ```
 	fn parse<P>(&mut self) -> Result<P>
 	where P: Parse<Stream = Self> {
@@ -54,69 +87,465 @@ pub trait ParseStreamer {
 	/// Returns `true` when there are no more tokens in the stream.
 	fn is_empty(&mut self) -> bool;
 
-	/// Returns a [`Some`] reference to the next [`Token`] in the stream without advancing
-	/// the iterator, or [`None`] if the stream is empty.
+	/// Returns a [`Some`] reference to the next [`Token`] in the stream without
+	/// advancing the iterator, or [`None`] if the stream is empty.
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug)]
+	/// enum Token {
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
+	/// }
+	///
+	/// let input = "foo";
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// assert!(parser.peek().is_some());
+	///
+	/// match parser.peek() {
+	///     Some(peeked) => {
+	///         assert!(matches!(peeked.as_matchable(), (TokenKind::Ident, "foo", _)));
+	///     },
+	///     None => unreachable!(),
+	/// }
+	///
+	/// let _ = parser.consume_kind(TokenKind::Ident)?;
+	/// assert!(parser.peek().is_none());
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
 	fn peek(&mut self) -> Option<&Self::Token>;
 
-	/// Returns a [`Some`] reference to the last token consumed by the iterator. Returns
-	/// [`None`] if the source string contains no tokens, or if no tokens have been
-	/// consumed yet.
+	/// Returns a [`Some`] reference to the last token consumed by the iterator.
+	/// Returns [`None`] if the source string contains no tokens, or if no tokens
+	/// have been consumed yet.
 	///
 	/// Underlying data access is `O(1)` in the [crate-provided implementation].
 	///
 	/// [crate-provided implementation]: ParseStream
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
+	/// }
+	///
+	/// let input = "foo";
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// assert!(parser.prev().is_none());
+	///
+	/// let foo = parser.consume_kind(TokenKind::Ident)?;
+	/// assert!(parser.prev().is_some());
+	/// assert_eq!(parser.prev().unwrap(), &foo);
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
 	fn prev(&mut self) -> Option<&Self::Token>;
 
-	/// Indicates whether the next [`Token`] in the stream matches the given [`Kind`],
-	/// without advancing the iterator.
+	/// Indicates whether the next [`Token`] in the stream matches the given
+	/// [`Kind`], without advancing the iterator.
 	///
 	/// [`Kind`]: Token::Kind
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
+	///     #[pattern = r"\S+"]
+	///     Unrecognized(Substr, Span),
+	/// }
+	///
+	/// let input = "foo";
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// assert_eq!(
+	///     parser.check_kind(TokenKind::Unrecognized),
+	///     false,
+	/// );
+	/// assert_eq!(
+	///     parser.check_kind(TokenKind::Ident),
+	///     true,
+	/// );
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
 	fn check_kind(&mut self, kind: <Self::Token as Token>::Kind) -> bool;
 
-	/// Indicates whether the next [`Token`] in the stream matches the parameter by
-	/// comparing their [`lexeme`]s. Does not advance the iterator.
-	///
-	/// [`lexeme`]: Token::lexeme
-	fn check(&mut self, compare: Self::Token) -> bool;
-
-	/// Advances the iterator, returning [`Ok`] with the next [`Token`] if it matches the
-	/// parameter by comparing their [`lexeme`]s. Otherwise returns a contextual
-	/// [`Err`]`(`[`SpannedError`]`)`.
-	///
-	/// [`lexeme`]: Token::lexeme
-	fn consume(&mut self, compare: Self::Token) -> Result<Self::Token>;
-
-	/// Advances the iterator, returning [`Ok`] with the next [`Token`] if it matches the
-	/// given [`Kind`]. Otherwise returns a contextual [`Err`]`(`[`SpannedError`]`)`.
+	/// Indicates whether the next [`Token`] in the stream matches the given
+	/// argument by comparing their [`Kind`]s and [`lexeme`]s. Does not advance
+	/// the iterator.
 	///
 	/// [`Kind`]: Token::Kind
+	/// [`lexeme`]: Token::lexeme
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[pattern = "[-+*/=<>]"]
+	///     Operator(Substr, Span),
+	/// }
+	///
+	/// let input = "=";
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// assert_eq!(
+	///     parser.check(operator![>]),
+	///     false,
+	/// );
+	/// assert_eq!(
+	///     parser.check(operator![=]),
+	///     true,
+	/// );
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
+	fn check(&mut self, compare: Self::Token) -> bool;
+
+	/// Advances the iterator, returning [`Ok`] with the next [`Token`] if it
+	/// matches the given argument by comparing their [`Kind`]s and [`lexeme`]s.
+	/// Otherwise returns a contextual [`Err`]`(`[`SpannedError`]`)`.
+	///
+	/// [`Kind`]: Token::Kind
+	/// [`lexeme`]: Token::lexeme
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[pattern = "[-+*/=<>]"]
+	///     Operator(Substr, Span),
+	/// }
+	///
+	/// let input = "=<";
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	///
+	/// let eq = parser.consume(operator![=]);
+	/// assert!(eq.is_ok());
+	///
+	/// let gt = parser.consume(operator![>]);
+	/// assert!(gt.is_err());
+	///
+	/// let error = gt.unwrap_err();
+	/// assert_eq!(format!("{error}"), r#"
+	/// ERROR: Expected `>`
+	///   |
+	/// 1 | =<
+	///   |  ^
+	/// "#);
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
+	fn consume(&mut self, compare: Self::Token) -> Result<Self::Token>;
+
+	/// Advances the iterator, returning [`Ok`] with the next [`Token`] if it
+	/// matches the given [`Kind`]. Otherwise returns a contextual
+	/// [`Err`]`(`[`SpannedError`]`)`.
+	///
+	/// [`Kind`]: Token::Kind
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[pattern = "[-+*/<>]"]
+	///     Operator(Substr, Span),
+	///
+	///     #[pattern = "[0-9]+"]
+	///     Number(Substr, Span),
+	/// }
+	///
+	/// let input = "2++";
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	///
+	/// let lhs = parser.consume_kind(TokenKind::Number);
+	/// assert!(lhs.is_ok());
+	///
+	/// let op = parser.consume_kind(TokenKind::Operator);
+	/// assert!(op.is_ok());
+	///
+	/// let rhs = parser.consume_kind(TokenKind::Number);
+	/// assert!(rhs.is_err());
+	///
+	/// let error = rhs.unwrap_err();
+	/// assert_eq!(format!("{error}"), r#"
+	/// ERROR: Expected Number, found Operator
+	///   |
+	/// 1 | 2++
+	///   |   ^
+	/// "#);
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
 	fn consume_kind(&mut self, kind: <Self::Token as Token>::Kind)
 		-> Result<Self::Token>;
 
-	/// ### TODO:
-	/// * Docs
-	/// * Consider moving to a different trait or providing a default impl to reduce the
-	///   burden of manually implementing this trait.
+	/// Advances the iterator, consuming the next token while converting it into
+	/// a different [`Kind`] using the provided `convert` function.
+	///
+	/// [`Kind`]: Token::Kind
+	///
+	/// # Example
+	///
+	/// This is primarily useful for "upgrading" less specific token variants
+	/// into more specific subsets of those variants at parse-time.
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// #     SpannedError,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[subset_of(Ident)]
+	///     #[pattern = "func|struct"]
+	///     Storage(Substr, Span),
+	///
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
+	///
+	///     #[pattern = r"[(){}\[\]]"]
+	///     Brace(Substr, Span),
+	///
+	///     StructName(Substr, Span),
+	///     FuncName(Substr, Span),
+	/// }
+	///
+	/// let input = r#"
+	///     struct Foo {}
+	///     func bar() {}
+	/// "#;
+	///
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	///
+	/// while let Some(token) = parser.next() {
+	///     use TokenKind::*;
+	///
+	///     match token.as_matchable() {
+	///         (Storage, "struct", _) => {
+	///             let ident = parser.consume_as(Ident, Token::struct_name)?;
+	///             assert_eq!(ident.kind(), StructName);
+	///             parser.consume(brace!("{"))?;
+	///             parser.consume(brace!("}"))?;
+	///         }
+	///         (Storage, "func", _) => {
+	///             let ident = parser.consume_as(Ident, Token::func_name)?;
+	///             assert_eq!(ident.kind(), FuncName);
+	///             parser.consume(brace!("("))?;
+	///             parser.consume(brace!(")"))?;
+	///             parser.consume(brace!("{"))?;
+	///             parser.consume(brace!("}"))?;
+	///         }
+	///         (_, _, span) => {
+	///             return Err(SpannedError {
+	///                 message: "Expected `struct` or `func`".into(),
+	///                 source: parser.source(),
+	///                 span: Some(span),
+	///             });
+	///         }
+	///     }
+	/// }
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
 	fn consume_as(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
 		convert: TokenCtor<Self::Token>,
 	) -> Result<Self::Token>;
 
-	/// ### TODO:
-	/// * Docs
-	/// * Consider moving to a different trait or providing a default impl to reduce the
-	///   burden of manually implementing this trait.
+	/// Similar to [`consume_as`], but retroactively upgrades the last token
+	/// consumed by the parser.
+	///
+	/// [`consume_as`]: ParseStreamer::consume_as
+	///
+	/// # Example
+	///
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// #     SpannedError,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
+	///
+	///     #[pattern = "[()]"]
+	///     Brace(Substr, Span),
+	///
+	///     #[pattern = "="]
+	///     Eq(Substr, Span),
+	///
+	///     FuncName(Substr, Span),
+	/// }
+	///
+	/// let input = "foo = bar()";
+	///
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	///
+	/// let lhs = parser.consume_kind(TokenKind::Ident)?;
+	/// let eq = parser.consume(eq![=])?;
+	/// let mut rhs = parser.consume_kind(TokenKind::Ident)?;
+	///
+	/// match parser.peek() {
+	///     Some(peeked) if matches!(peeked.as_matchable(), (TokenKind::Brace, "(", _)) => {
+	///         rhs = parser.upgrade_last(TokenKind::Ident, Token::func_name)?;
+	///     }
+	///     _ => {}
+	/// }
+	///
+	/// assert_eq!(rhs.kind(), TokenKind::FuncName);
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
 	fn upgrade_last(
 		&mut self,
 		kind: <Self::Token as Token>::Kind,
 		convert: TokenCtor<Self::Token>,
 	) -> Result<Self::Token>;
 
-	/// ### TODO:
-	/// * Docs
-	/// * Consider moving to a different trait or providing a default impl to reduce the
-	///   burden of manually implementing this trait.
+	/// Similar to [`upgrade_last`], but retroactively upgrades any arbitrary
+	/// token the parser has previously consumed.
+	///
+	/// # Warning
+	///
+	/// The default implementation of this operation runs in `O(n)` time, where
+	/// `n` is the number of tokens consumed so far. Prefer to use
+	/// [`upgrade_last`] when possible.
+	///
+	/// # Panics
+	///
+	/// The default implementation will panic if the provided `token` cannot be
+	/// found in the parser's buffer of previously consumed tokens.
+	///
+	/// [`upgrade_last`]: ParseStreamer::upgrade_last
+	///
+	/// # Example
+	/// ```
+	/// # #[macro_use]
+	/// # extern crate gramatika;
+	/// #
+	/// # use gramatika::{
+	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _,
+	/// #     SpannedError,
+	/// # };
+	/// #
+	/// # fn main() -> gramatika::Result<()> {
+	/// // ...
+	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// enum Token {
+	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
+	///     Ident(Substr, Span),
+	///
+	///     #[pattern = "[()]"]
+	///     Brace(Substr, Span),
+	///
+	///     #[pattern = "="]
+	///     Eq(Substr, Span),
+	///
+	///     FuncName(Substr, Span),
+	/// }
+	///
+	/// let input = "foo = bar()";
+	///
+	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	///
+	/// let lhs = parser.consume_kind(TokenKind::Ident)?;
+	/// let eq = parser.consume(eq![=])?;
+	/// let mut rhs = parser.consume_kind(TokenKind::Ident)?;
+	///
+	/// match parser.peek() {
+	///     Some(peeked) if matches!(peeked.as_matchable(), (TokenKind::Brace, "(", _)) => {
+	///         rhs = parser.upgrade(rhs, Token::func_name)?;
+	///     }
+	///     _ => {}
+	/// }
+	///
+	/// assert_eq!(rhs.kind(), TokenKind::FuncName);
+	///
+	/// # Ok(())
+	/// # }
+	/// ```
 	fn upgrade(
 		&mut self,
 		token: Self::Token,
@@ -127,6 +556,21 @@ pub trait ParseStreamer {
 	fn discard(&mut self);
 }
 
+/// A concrete implementation of the [`ParseStreamer`] interface.
+///
+/// For most applications, it should be sufficient to use this type as the
+/// "engine" for your parser, by deriving [`Token`] and [`Lexer`] for an enum
+/// type representing your language's tokens[^note], and using
+/// `ParseStream<T, L>` as the [`Stream`] type for your syntax tree's [`Parse`]
+/// implementations, where `T` is your concrete token type and `L` is your
+/// generated lexer.
+///
+/// See the [crate-level documentation] and the [`lexer`](crate::lexer)
+/// documentation for examples and (much) more detail, and see the
+/// [`ParseStreamer`] documentation for an overview of this type's public API.
+///
+/// [`Stream`]: Parse::Stream
+/// [crate-level documentation]: crate
 pub struct ParseStream<T, L>
 where
 	T: Token + Spanned,
