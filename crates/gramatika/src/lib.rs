@@ -1,30 +1,6 @@
 //! # Gramatika
 //! A minimal toolkit for writing parsers with Rust
 //!
-//! ## Status
-//! This crate is still pretty young, but starting to feel comfortable in its
-//! own skin! It probably wouldn't be wise to give it too much responsibility
-//! just yet, but it should be up to the task of handling many common or
-//! straightforward use cases. API is subject to change from minor version to
-//! minor version until we hit `1.0`, but I'm pretty happy with the general
-//! shape of things at this point, so I wouldn't expect any major breaking
-//! changes anytime soon.
-//!
-//! ## Motivation
-//! Though powerful and useful in a lot of situations, I find parser generators
-//! to be kind of fiddly and onerous to work with for a variety of reasons. On
-//! the other hand, writing a parser by hand requires a ton of tedious
-//! boilerplate just to get off the ground.
-//!
-//! This project is an attempt to find _my_ Goldilocks zone (your mileage may
-//! vary) between automagic grammar-based tools and staring into the terrifying
-//! abyss of a blank `lib.rs` file. Currently, it provides a _lexer_ generator
-//! that's dirt simple to use, some convenience macros, and some barebones
-//! parsing primitives inspired by [syn] --- just enough to give you a rolling
-//! start and get out of your way.
-//!
-//! [syn]: https://crates.io/crates/syn
-//!
 //! ## Getting Started
 //! Add the dependency to your `Cargo.toml`:
 //!
