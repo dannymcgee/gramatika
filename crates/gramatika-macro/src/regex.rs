@@ -5,7 +5,6 @@ use pm2::{Group, Ident, Literal, TokenTree};
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::quote;
-use regex_automata::RegexBuilder;
 use syn::{Attribute, Variant};
 
 use crate::common::{self, VariantAttrs, VariantIdents};
@@ -22,7 +21,7 @@ pub fn proc(input: pm::TokenStream) -> pm::TokenStream {
 		})
 		.join("|");
 
-	compile(&pattern, false).unwrap().into()
+	compile(&pattern, false).into()
 }
 
 pub fn token_impls(kind_ident: &Ident, variants: &[Variant]) -> Vec<pm2::TokenStream> {
@@ -48,12 +47,7 @@ fn token_impl(
 		return quote! {};
 	}
 
-	let init = match init_expr(patterns, multiline) {
-		Ok(regex) => Some(regex),
-		Err(err) => panic!("{}", err),
-	}
-	.unwrap();
-
+	let init = init_expr(patterns, multiline);
 	let idents = VariantIdents::new(variant);
 	let get_pattern_impl = get_pattern_impl(&idents, init);
 	let match_impl_body =
@@ -85,15 +79,15 @@ fn get_pattern_impl(idents: &VariantIdents, init: pm2::TokenStream) -> pm2::Toke
 	quote! {
 		fn #get_pattern()
 			-> &'static ::gramatika::regex_automata::Regex<
-				::gramatika::regex_automata::SparseDFA<
-					&'static [u8], u32>>
+				::gramatika::regex_automata::DenseDFA<
+					Vec<u32>, u32>>
 		{
 			use ::gramatika::{
 				once_cell::sync::OnceCell,
-				regex_automata::{SparseDFA, Regex},
+				regex_automata::{DenseDFA, Regex},
 			};
 
-			static #pattern: OnceCell<Regex<SparseDFA<&'static [u8], u32>>> = OnceCell::new();
+			static #pattern: OnceCell<Regex<DenseDFA<Vec<u32>, u32>>> = OnceCell::new();
 
 			#pattern.get_or_init(|| #init)
 		}
@@ -145,40 +139,24 @@ fn match_impl_body(
 	}
 }
 
-fn compile(pattern: &str, dotall: bool) -> anyhow::Result<pm2::TokenStream> {
-	let re = RegexBuilder::new()
-		.anchored(true)
-		.dot_matches_new_line(dotall)
-		.build_sparse(pattern)?;
+fn compile(pattern: &str, dotall: bool) -> pm2::TokenStream {
+	quote! {{
+		use ::gramatika::regex_automata::{DenseDFA, Regex, RegexBuilder};
 
-	let fwd = re.forward().to_u32()?.to_bytes_native_endian()?;
-	let fwd = fwd
-		.iter()
-		.map(|b| pm2::Literal::u8_unsuffixed(*b))
-		.collect_vec();
-	let fwd = quote! { &[#(#fwd),*] };
+		let re = RegexBuilder::new()
+			.anchored(true)
+			.dot_matches_new_line(#dotall)
+			.build(#pattern)
+			.unwrap();
 
-	let rev = re.reverse().to_u32()?.to_bytes_native_endian()?;
-	let rev = rev
-		.iter()
-		.map(|b| pm2::Literal::u8_unsuffixed(*b))
-		.collect_vec();
-	let rev = quote! { &[#(#rev),*] };
+		let fwd = re.forward().to_u32().unwrap();
+		let rev = re.reverse().to_u32().unwrap();
 
-	let regex = quote! {{
-		let fwd = unsafe { SparseDFA::from_bytes(#fwd) };
-		let rev = unsafe { SparseDFA::from_bytes(#rev) };
-
-		Regex::<SparseDFA<&[u8], u32>>::from_dfas(fwd, rev)
-	}};
-
-	Ok(regex)
+		Regex::<DenseDFA<Vec<u32>, u32>>::from_dfas(fwd, rev)
+	}}
 }
 
-fn init_expr(
-	patterns: Vec<Literal>,
-	multiline: bool,
-) -> anyhow::Result<pm2::TokenStream> {
+fn init_expr(patterns: Vec<Literal>, multiline: bool) -> pm2::TokenStream {
 	if patterns.len() == 1 {
 		let lit = patterns.into_iter().last().unwrap();
 		let pattern = from_literal(&lit);

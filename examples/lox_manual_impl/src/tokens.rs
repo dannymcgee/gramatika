@@ -5,7 +5,7 @@ use std::fmt;
 use arcstr::Substr;
 use gramatika::{
 	once_cell::sync::OnceCell,
-	regex_automata::{Regex, RegexBuilder, SparseDFA},
+	regex_automata::{DenseDFA, Regex, RegexBuilder},
 	DebugLisp, Span, Spanned, Token as _,
 };
 
@@ -79,6 +79,8 @@ impl TokenKind {
 	}
 }
 
+type PatternMatcher = Regex<DenseDFA<Vec<u32>, u32>>;
+
 #[allow(clippy::type_complexity)]
 impl Token {
 	pub fn as_inner(&self) -> (Substr, Span) {
@@ -125,15 +127,12 @@ impl Token {
 	}
 
 	#[inline]
-	fn init_regex(
-		pattern: &str,
-		dotall: bool,
-	) -> impl FnOnce() -> Regex<SparseDFA<Vec<u8>, u32>> + '_ {
+	fn init_regex(pattern: &str, dotall: bool) -> impl FnOnce() -> PatternMatcher + '_ {
 		move || {
 			let re = RegexBuilder::new()
 				.anchored(true)
 				.dot_matches_new_line(dotall)
-				.build_sparse(pattern)
+				.build(pattern)
 				.unwrap();
 
 			let fwd = re.forward().to_u32().unwrap();
@@ -144,20 +143,20 @@ impl Token {
 	}
 
 	// Pattern getters
-	fn line_comment_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn line_comment_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex("//.*", false))
 	}
 
-	fn block_comment_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn block_comment_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"/\*.*?\*/", true))
 	}
 
-	fn keyword_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn keyword_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(
 			"and|class|else|false|for|fun|if|nil|or|print|return|super|this|true|var|while",
@@ -165,38 +164,38 @@ impl Token {
 		))
 	}
 
-	fn ident_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn ident_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex("[a-zA-Z_][a-zA-Z0-9_]*", false))
 	}
 
-	fn brace_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn brace_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"[(){}]", false))
 	}
 
-	fn punct_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn punct_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"[,.;]", false))
 	}
 
-	fn operator_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn operator_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"([=!<>]=?|[-+*/])", false))
 	}
 
-	fn num_lit_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn num_lit_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex(r"[0-9]+", false))
 	}
 
-	fn str_lit_pattern() -> &'static Regex<SparseDFA<Vec<u8>, u32>> {
-		static PATTERN: OnceCell<Regex<SparseDFA<Vec<u8>, u32>>> = OnceCell::new();
+	fn str_lit_pattern() -> &'static PatternMatcher {
+		static PATTERN: OnceCell<PatternMatcher> = OnceCell::new();
 
 		PATTERN.get_or_init(Self::init_regex("\"[^\"]*\"", false))
 	}
