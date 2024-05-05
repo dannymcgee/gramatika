@@ -8,9 +8,6 @@ readme = "../../README.md"
 repository = "http://github.com/dannymcgee/gramatika"
 description = "A minimal toolkit for writing parsers with Rust"
 
-[lib]
-doctest = false
-
 [dependencies]
 arcstr = { version = "1.1", features = ["substr"] }
 once_cell = { version = "1.8", optional = true }
