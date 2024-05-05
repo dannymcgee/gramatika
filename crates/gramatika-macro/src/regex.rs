@@ -84,20 +84,18 @@ fn get_pattern_impl(idents: &VariantIdents, init: pm2::TokenStream) -> pm2::Toke
 	let get_pattern = &idents.get_pattern;
 	quote! {
 		fn #get_pattern()
-		-> &'static ::std::sync::RwLock<
-			::gramatika::regex_automata::Regex<
+			-> &'static ::gramatika::regex_automata::Regex<
 				::gramatika::regex_automata::SparseDFA<
-					&'static [u8], u32>>>
+					&'static [u8], u32>>
 		{
 			use ::gramatika::{
 				once_cell::sync::OnceCell,
 				regex_automata::{SparseDFA, Regex},
 			};
-			use ::std::sync::RwLock;
 
-			static #pattern: OnceCell<RwLock<Regex<SparseDFA<&'static [u8], u32>>>> = OnceCell::new();
+			static #pattern: OnceCell<Regex<SparseDFA<&'static [u8], u32>>> = OnceCell::new();
 
-			#pattern.get_or_init(|| RwLock::new(#init))
+			#pattern.get_or_init(|| #init)
 		}
 	}
 }
@@ -123,11 +121,7 @@ fn match_impl_body(
 					let variant_ident = &variant.ident;
 					let VariantIdents { get_pattern, .. } = VariantIdents::new(variant);
 					quote! {
-						match Self::#get_pattern()
-							.read()
-							.unwrap()
-							.find(input.as_bytes())
-						{
+						match Self::#get_pattern().find(input.as_bytes()) {
 							Some((s, e)) if s == start && e == end => {
 								Some((start, end, #kind_ident::#variant_ident))
 							}
@@ -137,11 +131,7 @@ fn match_impl_body(
 				});
 
 		quote! {
-			match Self::#get_pattern()
-				.read()
-				.unwrap()
-				.find(input.as_bytes())
-			{
+			match Self::#get_pattern().find(input.as_bytes()) {
 				Some((start, end)) => #match_subsets
 				None => None,
 			}
@@ -149,8 +139,6 @@ fn match_impl_body(
 	} else {
 		quote! {
 			Self::#get_pattern()
-				.read()
-				.unwrap()
 				.find(input.as_bytes())
 				.map(|(start, end)| (start, end, #kind_ident::#variant_ident))
 		}

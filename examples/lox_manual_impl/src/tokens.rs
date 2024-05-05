@@ -1,6 +1,6 @@
 #![allow(unused_macros, dead_code)]
 
-use std::{fmt, sync::RwLock};
+use std::fmt;
 
 use arcstr::Substr;
 use gramatika::{
