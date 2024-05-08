@@ -117,18 +117,20 @@ pub fn derive(input: TokenStream) -> TokenStream {
 					}
 					None => {
 						self.remaining.clone().chars().next().and_then(|c| match c {
-							' ' | '\t' | '\r' => {
-								self.lookahead.character += 1;
-								self.current.character += 1;
-								self.remaining = self.remaining.substr(1..);
-
-								self.scan_token()
-							},
 							'\n' => {
 								self.lookahead.line += 1;
 								self.lookahead.character = 0;
 								self.current = self.lookahead;
 								self.remaining = self.remaining.substr(1..);
+
+								self.scan_token()
+							},
+							other if other.is_whitespace() => {
+								let len = other.len_utf8();
+
+								self.lookahead.character += len;
+								self.current.character += len;
+								self.remaining = self.remaining.substr(len..);
 
 								self.scan_token()
 							},
