@@ -912,10 +912,13 @@ where
 
 					Some(Ok(converted))
 				} else {
+					let span = token.span();
+					self.tokens.push(token);
+
 					Some(Err(SpannedError {
 						message: format!("Expected {:?}", kind),
 						source: self.source(),
-						span: Some(token.span()),
+						span: Some(span),
 					}))
 				}
 			})
@@ -942,10 +945,13 @@ where
 
 					Ok(converted)
 				} else {
+					let span = token.span();
+					self.tokens.push(token);
+
 					Err(SpannedError {
 						message: format!("Expected {:?}", kind),
 						source: self.source(),
-						span: Some(token.span()),
+						span: Some(span),
 					})
 				}
 			})
