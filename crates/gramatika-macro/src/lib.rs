@@ -13,6 +13,7 @@ pub fn derive_token(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_derive(Lexer)]
+#[deprecated(since = "0.6.0", note = "Use `gramatika::TokenStream<T>` instead")]
 pub fn derive_lexer(input: TokenStream) -> TokenStream {
 	lexer::derive(input)
 }

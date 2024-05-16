@@ -32,7 +32,7 @@ pub fn lexer(c: &mut Criterion) {
 	for (key, program) in programs {
 		let name = BenchmarkId::new("derived", key);
 		group.bench_with_input(name, program, move |b, input| {
-			b.iter_with_large_drop(|| lox::Lexer::new(input.into()).scan())
+			b.iter_with_large_drop(|| lox::TokenStream::new(input.into()).scan())
 		});
 
 		let name = BenchmarkId::new("manual", key);

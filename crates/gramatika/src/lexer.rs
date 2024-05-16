@@ -549,11 +549,11 @@
 //! the second does the same for digits _after_ the `.`).
 //!
 
-use std::fmt;
+use std::{collections::HashSet, fmt, hash::Hash, marker::PhantomData};
 
 use arcstr::Substr;
 
-use crate::{Span, Spanned};
+use crate::{Position, Span, Spanned};
 
 /// A lexer (AKA scanner, AKA tokenizer) is the piece of the parsing toolchain
 /// that takes raw input (e.g., the text of a source file) and "scans" it into
@@ -632,7 +632,20 @@ pub trait Lexer {
 pub trait Token
 where Self: Clone + Spanned
 {
-	type Kind: fmt::Debug + PartialEq;
+	type Kind: Copy + fmt::Debug + PartialEq + Eq + Hash + 'static;
+
+	// TODO: Docs
+	fn find<S>(input: S) -> Option<(usize, usize, Self::Kind)>
+	where S: AsRef<str>;
+
+	// TODO: Docs
+	fn from_parts(kind: Self::Kind, substr: Substr, span: Span) -> Self;
+
+	// TODO: Docs
+	fn multilines() -> &'static HashSet<Self::Kind>;
+
+	// TODO: Docs
+	fn discards() -> &'static HashSet<Self::Kind>;
 
 	/// Returns the actual text content of a token.
 	///
@@ -736,4 +749,109 @@ where Self: Clone + Spanned
 	/// # }
 	/// ```
 	fn as_matchable(&self) -> (Self::Kind, &str, Span);
+}
+
+// TODO: Docs
+pub struct TokenStream<T>
+where T: Token
+{
+	input: Substr,
+	remaining: Substr,
+	current: Position,
+	lookahead: Position,
+	_marker: PhantomData<T>,
+}
+
+impl<T> Lexer for TokenStream<T>
+where T: Token
+{
+	type Output = T;
+
+	fn new(input: Substr) -> Self {
+		Self {
+			remaining: input.substr(..),
+			input,
+			current: Position::default(),
+			lookahead: Position::default(),
+			_marker: Default::default(),
+		}
+	}
+
+	fn source(&self) -> Substr {
+		self.input.clone()
+	}
+
+	fn scan(&mut self) -> Vec<T> {
+		let mut output = vec![];
+		while let Some(token) = self.scan_token() {
+			output.push(token);
+		}
+
+		output
+	}
+
+	fn scan_token(&mut self) -> Option<T> {
+		match <T as Token>::find(&self.remaining) {
+			Some((start, end, kind)) => {
+				let lexeme = self.remaining.substr(start..end);
+
+				if <T as Token>::multilines().contains(&kind) {
+					let mut line_inc = 0_usize;
+					let mut remaining = lexeme.as_str();
+
+					while let Some(idx) = remaining.find('\n') {
+						line_inc += 1;
+						remaining = &remaining[idx + 1..];
+					}
+					let char_inc = remaining.len();
+
+					self.lookahead.line += line_inc;
+
+					if line_inc > 0 {
+						self.lookahead.character = char_inc;
+					} else {
+						self.lookahead.character += char_inc;
+					}
+				} else {
+					self.lookahead.character += end;
+				}
+
+				let span = Span {
+					start: self.current,
+					end: self.lookahead,
+				};
+
+				let token = <T as Token>::from_parts(kind, lexeme, span);
+
+				self.remaining = self.remaining.substr(end..);
+				self.current = self.lookahead;
+
+				if <T as Token>::discards().contains(&kind) {
+					self.scan_token()
+				} else {
+					Some(token)
+				}
+			}
+			None => self.remaining.clone().chars().next().and_then(|c| match c {
+				'\n' => {
+					self.lookahead.line += 1;
+					self.lookahead.character = 0;
+					self.current = self.lookahead;
+					self.remaining = self.remaining.substr(1..);
+
+					self.scan_token()
+				}
+				other if other.is_whitespace() => {
+					let len = other.len_utf8();
+
+					self.lookahead.character += len;
+					self.current.character += len;
+					self.remaining = self.remaining.substr(len..);
+
+					self.scan_token()
+				}
+				other => panic!("Unsupported input: `{other}` at {:?}", self.current),
+			}),
+		}
+	}
 }

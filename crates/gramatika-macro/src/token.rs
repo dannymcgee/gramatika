@@ -16,7 +16,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 	let generics = &ast.generics;
 
 	let variants = common::expand_variants(&ast.data);
-	let (ctor_ident, _) = common::token_funcs(&variants);
+	let (ctor_ident, matcher_ident) = common::token_funcs(&variants);
 	let variant_match_impl = regex::token_impls(&kind_ident, &variants);
 
 	let (variant_ident, variant_fields): (Vec<_>, Vec<_>) = variants
@@ -95,6 +95,7 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 		}
 
 		impl #kind_ident {
+			#[deprecated(note = "Use `Token::discards()` instead")]
 			fn discards() -> &'static ::std::collections::HashSet<#kind_ident> {
 				use ::std::collections::HashSet;
 				use ::gramatika::once_cell::sync::OnceCell;
@@ -105,6 +106,8 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 					#( #kind_ident::#discarded_kinds, )*
 				])
 			}
+
+			#[deprecated(note = "Use `Token::multilines()` instead")]
 			fn multilines() -> &'static ::std::collections::HashSet<#kind_ident> {
 				use ::std::collections::HashSet;
 				use ::gramatika::once_cell::sync::OnceCell;
@@ -154,6 +157,41 @@ pub fn derive(input: pm::TokenStream) -> pm::TokenStream {
 
 		impl #generics ::gramatika::Token for #token_ident #generics {
 			type Kind = #kind_ident;
+
+			fn find<S>(input: S) -> Option<(usize, usize, Self::Kind)>
+			where S: AsRef<str> {
+				let input = input.as_ref();
+				None
+					#( .or_else(|| Self::#matcher_ident(input)) )*
+			}
+
+			fn from_parts(kind: Self::Kind, substr: Substr, span: Span) -> Self {
+				match kind {
+					#( #kind_ident::#variant_ident => Self::#variant_ident(substr, span) ),*
+				}
+			}
+
+			fn multilines() -> &'static ::std::collections::HashSet<#kind_ident> {
+				use ::std::collections::HashSet;
+				use ::gramatika::once_cell::sync::OnceCell;
+
+				static MULTILINES: OnceCell<HashSet<#kind_ident>> = OnceCell::new();
+
+				MULTILINES.get_or_init(|| hash_set![
+					#( #kind_ident::#multiline_kinds, )*
+				])
+			}
+
+			fn discards() -> &'static ::std::collections::HashSet<#kind_ident> {
+				use ::std::collections::HashSet;
+				use ::gramatika::once_cell::sync::OnceCell;
+
+				static DISCARDS: OnceCell<HashSet<#kind_ident>> = OnceCell::new();
+
+				DISCARDS.get_or_init(|| hash_set![
+					#( #kind_ident::#discarded_kinds, )*
+				])
+			}
 
 			fn lexeme(&self) -> ::gramatika::Substr {
 				self.as_inner().0

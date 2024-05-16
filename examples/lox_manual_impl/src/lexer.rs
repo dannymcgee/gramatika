@@ -1,5 +1,5 @@
 use arcstr::Substr;
-use gramatika::{Position, Span};
+use gramatika::{Position, Span, Token as _};
 
 use crate::tokens::{Token, TokenKind};
 
@@ -64,7 +64,7 @@ impl gramatika::Lexer for Lexer {
 				};
 				let lexeme = self.remaining.substr(start..end);
 
-				if TokenKind::multilines().contains(&kind) {
+				if Token::multilines().contains(&kind) {
 					let mut line_inc = 0_usize;
 					let mut remaining = lexeme.as_str();
 
@@ -94,7 +94,7 @@ impl gramatika::Lexer for Lexer {
 				self.remaining = self.remaining.substr(end..);
 				self.current = self.lookahead;
 
-				if TokenKind::discards().contains(&kind) {
+				if Token::discards().contains(&kind) {
 					self.scan_token()
 				} else {
 					Some(token)

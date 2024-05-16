@@ -1,4 +1,4 @@
-use crate::{tokens::Token, Lexer};
+use crate::{tokens::Token, TokenStream};
 use gramatika::{arcstr::literal_substr, Lexer as _, Substr};
 
 #[test]
@@ -6,7 +6,7 @@ fn it_works() {
 	use Token::*;
 
 	let input = "var foo = 2 + 2;";
-	let mut lexer = Lexer::new(Substr::from(input));
+	let mut lexer = TokenStream::new(Substr::from(input));
 	let tokens = lexer.scan();
 
 	let expected = vec![
@@ -30,7 +30,7 @@ fn multi_line() {
 var foo = 2 + 2;
 var bar = foo + foo;
 	";
-	let mut lexer = Lexer::new(Substr::from(input));
+	let mut lexer = TokenStream::new(Substr::from(input));
 	let tokens = lexer.scan();
 
 	let expected = vec![
@@ -64,7 +64,7 @@ fn multi_line_token() {
  */
 var foo = 2 + 2;
 	";
-	let mut lexer = Lexer::new(input.into());
+	let mut lexer = TokenStream::new(input.into());
 	let tokens = lexer.scan();
 
 	let expected = vec![
@@ -83,7 +83,7 @@ var foo = 2 + 2;
 #[test]
 fn ident_with_digit() {
 	let input = "foo2";
-	let mut lexer = Lexer::new(Substr::from(input));
+	let mut lexer = TokenStream::new(Substr::from(input));
 	let tokens = lexer.scan();
 
 	assert_eq!(

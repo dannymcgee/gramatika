@@ -7,7 +7,7 @@ extern crate gramatika;
 use gramatika::{Span, Substr};
 
 #[allow(dead_code)]
-#[derive(Debug, Token, Lexer)]
+#[derive(Debug, Token)]
 enum Token {
 	#[discard]
 	#[pattern = "//.*"]
