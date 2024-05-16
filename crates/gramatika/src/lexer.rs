@@ -551,7 +551,7 @@
 
 use std::fmt;
 
-use arcstr::{ArcStr, Substr};
+use arcstr::Substr;
 
 use crate::{Span, Spanned};
 
@@ -574,7 +574,7 @@ pub trait Lexer {
 	/// [`Output`] tokens.
 	///
 	/// [`Output`]: Lexer::Output
-	fn new(input: ArcStr) -> Self;
+	fn new(input: Substr) -> Self;
 
 	/// Experimental
 	#[doc(hidden)]
@@ -587,8 +587,8 @@ pub trait Lexer {
 		self
 	}
 
-	/// Returns an owned copy of the input [`ArcStr`] this lexer is scanning.
-	fn source(&self) -> ArcStr;
+	/// Returns an owned copy of the input [`Substr`] this lexer is scanning.
+	fn source(&self) -> Substr;
 
 	/// Scans a single token from the input.
 	///

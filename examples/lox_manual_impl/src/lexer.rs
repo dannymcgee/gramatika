@@ -1,10 +1,10 @@
-use arcstr::{ArcStr, Substr};
+use arcstr::Substr;
 use gramatika::{Position, Span};
 
 use crate::tokens::{Token, TokenKind};
 
 pub struct Lexer {
-	input: ArcStr,
+	input: Substr,
 	remaining: Substr,
 	current: Position,
 	lookahead: Position,
@@ -15,7 +15,7 @@ type TokenCtor = fn(lexeme: Substr, span: Span) -> Token;
 impl gramatika::Lexer for Lexer {
 	type Output = Token;
 
-	fn new(input: ArcStr) -> Self {
+	fn new(input: Substr) -> Self {
 		Self {
 			remaining: input.substr(..),
 			input,
@@ -24,7 +24,7 @@ impl gramatika::Lexer for Lexer {
 		}
 	}
 
-	fn source(&self) -> ArcStr {
+	fn source(&self) -> Substr {
 		self.input.clone()
 	}
 

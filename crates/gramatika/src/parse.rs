@@ -1,6 +1,6 @@
 use core::fmt;
 
-use arcstr::{ArcStr, Substr};
+use arcstr::Substr;
 
 use crate::{Lexer, Position, Result, Span, Spanned, SpannedError, Token};
 
@@ -576,7 +576,7 @@ where
 	T: Token + Spanned,
 	L: Lexer<Output = T>,
 {
-	input: ArcStr,
+	input: Substr,
 	lexer: L,
 	peek: Option<T>,
 	tokens: Vec<T>,
@@ -596,11 +596,11 @@ where
 		}
 	}
 
-	pub fn source(&self) -> ArcStr {
-		ArcStr::clone(&self.input)
+	pub fn source(&self) -> Substr {
+		self.input.clone()
 	}
 
-	pub fn into_inner(self) -> (ArcStr, Vec<T>) {
+	pub fn into_inner(self) -> (Substr, Vec<T>) {
 		(self.input, self.tokens)
 	}
 
@@ -1013,13 +1013,13 @@ where
 
 impl<S, T, L> From<S> for ParseStream<T, L>
 where
-	S: Into<ArcStr>,
+	S: Into<Substr>,
 	T: Token + Spanned,
 	L: Lexer<Output = T>,
 {
 	fn from(input: S) -> Self {
 		let input = input.into();
-		let lexer = L::new(ArcStr::clone(&input));
+		let lexer = L::new(input.clone());
 
 		Self {
 			input,

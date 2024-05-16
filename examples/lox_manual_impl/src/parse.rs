@@ -1,4 +1,4 @@
-use arcstr::ArcStr;
+use arcstr::Substr;
 use gramatika::{
 	Lexer as _, ParseStreamer, Result, Spanned, SpannedError, Token as _, TokenCtor,
 };
@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub struct ParseStream {
-	input: ArcStr,
+	input: Substr,
 	lexer: Lexer,
 	peek: Option<Token>,
 	tokens: Vec<Token>,
@@ -25,11 +25,11 @@ impl ParseStream {
 		}
 	}
 
-	pub fn source(&self) -> ArcStr {
-		ArcStr::clone(&self.input)
+	pub fn source(&self) -> Substr {
+		self.input.clone()
 	}
 
-	pub fn into_inner(self) -> (ArcStr, Vec<Token>) {
+	pub fn into_inner(self) -> (Substr, Vec<Token>) {
 		(self.input, self.tokens)
 	}
 
@@ -226,11 +226,11 @@ impl From<Lexer> for ParseStream {
 }
 
 impl<S> From<S> for ParseStream
-where S: Into<ArcStr>
+where S: Into<Substr>
 {
 	fn from(input: S) -> Self {
 		let input = input.into();
-		let lexer = Lexer::new(ArcStr::clone(&input));
+		let lexer = Lexer::new(input.clone());
 
 		Self {
 			input,

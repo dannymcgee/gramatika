@@ -1,21 +1,23 @@
 use std::fmt;
 
-use arcstr::ArcStr;
+use arcstr::Substr;
 
 use crate::{DebugLisp, DebugLispStruct, Span};
 
 #[derive(Clone)]
-pub struct SpannedError {
+pub struct SpannedError<S> {
 	pub message: String,
-	pub source: ArcStr,
+	pub source: S,
 	pub span: Option<Span>,
 }
 
-impl std::error::Error for SpannedError {}
+pub type Result<T> = std::result::Result<T, SpannedError<Substr>>;
 
-pub type Result<T> = std::result::Result<T, SpannedError>;
+impl<S> std::error::Error for SpannedError<S> where S: AsRef<str> + fmt::Debug {}
 
-impl fmt::Display for SpannedError {
+impl<S> fmt::Display for SpannedError<S>
+where S: AsRef<str>
+{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		if f.alternate() {
 			write!(f, "{}", self.message)
@@ -30,6 +32,7 @@ impl fmt::Display for SpannedError {
 
 				let line = self
 					.source
+					.as_ref()
 					.lines()
 					.enumerate()
 					.find_map(|(idx, line)| {
@@ -62,7 +65,9 @@ impl fmt::Display for SpannedError {
 	}
 }
 
-impl fmt::Debug for SpannedError {
+impl<D> fmt::Debug for SpannedError<D>
+where D: fmt::Debug
+{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		f.debug_struct("SpannedError")
 			.field("message", &self.message)
@@ -72,7 +77,7 @@ impl fmt::Debug for SpannedError {
 	}
 }
 
-impl DebugLisp for SpannedError {
+impl<S> DebugLisp for SpannedError<S> {
 	fn fmt(&self, f: &mut fmt::Formatter, indent: usize) -> fmt::Result {
 		DebugLispStruct::new(f, indent, "SpannedError")
 			.field("message", &self.message)
