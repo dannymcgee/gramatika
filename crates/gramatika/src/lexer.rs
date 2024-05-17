@@ -97,7 +97,7 @@
 //! # fn main() {
 //! use gramatika::{Span, Spanned, Substr, Token as _, span};
 //!
-//! #[derive(Token, Lexer, PartialEq)]
+//! #[derive(Token, PartialEq)]
 //! enum Token {
 //!     Ident(Substr, Span),
 //! }
@@ -614,6 +614,19 @@ pub trait Lexer {
 	}
 }
 
+// TODO
+/// Experimental
+#[doc(hidden)]
+pub trait PartialLexer {
+	/// Initialize a new lexer from the state of some previous one that was
+	/// interrupted.
+	fn from_remaining(input: Substr, position: Position) -> Self;
+
+	/// Consumes the lexer, returning the remaining (unscanned) portion of the
+	/// input and the current cursor position.
+	fn stop(self) -> (Substr, Position);
+}
+
 /// In the parlance of language parsing, "tokens" are the smallest discrete
 /// chunks of meaningful information that can be extracted from some raw input,
 /// like the text of a source file.
@@ -752,9 +765,7 @@ where Self: Clone + Spanned
 }
 
 // TODO: Docs
-pub struct TokenStream<T>
-where T: Token
-{
+pub struct TokenStream<T> {
 	input: Substr,
 	remaining: Substr,
 	current: Position,
@@ -853,5 +864,21 @@ where T: Token
 				other => panic!("Unsupported input: `{other}` at {:?}", self.current),
 			}),
 		}
+	}
+}
+
+impl<T> PartialLexer for TokenStream<T> {
+	fn from_remaining(input: Substr, position: Position) -> Self {
+		Self {
+			remaining: input.clone(),
+			input,
+			current: position,
+			lookahead: position,
+			_marker: Default::default(),
+		}
+	}
+
+	fn stop(self) -> (Substr, Position) {
+		(self.remaining, self.current)
 	}
 }
