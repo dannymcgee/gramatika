@@ -9,7 +9,7 @@
 //! gramatika = "0.5"
 //! ```
 //!
-//! Define an enum for your tokens and derive the `Token` and `Lexer` traits:
+//! Define an enum for your tokens and derive the [`Token`] trait:
 //! ```
 //! #[macro_use]
 //! extern crate gramatika;
@@ -17,7 +17,7 @@
 //! # fn main () {
 //! use gramatika::{Span, Substr};
 //!
-//! #[derive(Token, Lexer)]
+//! #[derive(Token)]
 //! enum Token {
 //!     #[pattern = "print"]
 //!     Keyword(Substr, Span),
@@ -35,7 +35,7 @@
 //! ```
 //!
 //! Next, you'll probably find it useful to declare a type alias for your
-//! [`ParseStream`]:
+//! [`TokenStream`] and [`ParseStream`]:
 //!
 //! ```
 //! # #[macro_use]
@@ -44,7 +44,7 @@
 //! # fn main () {
 //! # use gramatika::{Span, Substr};
 //! #
-//! # #[derive(Token, Lexer)]
+//! # #[derive(Token)]
 //! # enum Token {
 //! #     #[pattern = "print"]
 //! #     Keyword(Substr, Span),
@@ -56,6 +56,7 @@
 //! #     Unrecognized(Substr, Span),
 //! # }
 //! // ...
+//! type Lexer = gramatika::TokenStream<Token>;
 //! type ParseStream = gramatika::ParseStream<Token, Lexer>;
 //! # }
 //! ```
@@ -67,7 +68,7 @@
 //! # fn main () {
 //! # use gramatika::{Span, Substr};
 //! #
-//! # #[derive(Token, Lexer)]
+//! # #[derive(Token)]
 //! # enum Token {
 //! #     #[pattern = "print"]
 //! #     Keyword(Substr, Span),
@@ -78,6 +79,7 @@
 //! #     #[pattern = r"\S+"]
 //! #     Unrecognized(Substr, Span),
 //! # }
+//! # type Lexer = gramatika::TokenStream<Token>;
 //! # type ParseStream = gramatika::ParseStream<Token, Lexer>;
 //! // ...
 //! struct Program {
@@ -104,7 +106,7 @@
 //! # fn main () {
 //! use gramatika::{Parse, ParseStreamer, Span, SpannedError, Substr, Token as _};
 //!
-//! #[derive(Debug, Token, Lexer)]
+//! #[derive(Debug, Token)]
 //! enum Token {
 //!     // ...
 //! #     #[pattern = "print"]
@@ -116,6 +118,7 @@
 //! #     #[pattern = r"\S+"]
 //! #     Unrecognized(Substr, Span),
 //! }
+//! # type Lexer = gramatika::TokenStream<Token>;
 //! # type ParseStream = gramatika::ParseStream<Token, Lexer>;
 //! # struct Program {
 //! #    statements: Vec<Stmt>,
@@ -210,7 +213,7 @@
 //! use gramatika::{
 //!     Parse, ParseStreamer, Span, Spanned, SpannedError, Substr, Token as _,
 //! };
-//! # #[derive(Debug, Token, Lexer)]
+//! # #[derive(Debug, Token)]
 //! # enum Token {
 //! #     #[pattern = "print"]
 //! #     Keyword(Substr, Span),
@@ -221,6 +224,7 @@
 //! #     #[pattern = r"\S+"]
 //! #     Unrecognized(Substr, Span),
 //! # }
+//! # type Lexer = gramatika::TokenStream<Token>;
 //! # type ParseStream = gramatika::ParseStream<Token, Lexer>;
 //! #
 //! # struct Program {
@@ -309,7 +313,7 @@
 //! # use gramatika::{
 //! #     Parse, ParseStreamer, Span, Spanned, SpannedError, Substr, Token as _,
 //! # };
-//! # #[derive(Debug, Token, Lexer)]
+//! # #[derive(Debug, Token)]
 //! # enum Token {
 //! #     #[pattern = "print"]
 //! #     Keyword(Substr, Span),
@@ -320,6 +324,7 @@
 //! #     #[pattern = r"\S+"]
 //! #     Unrecognized(Substr, Span),
 //! # }
+//! # type Lexer = gramatika::TokenStream<Token>;
 //! # type ParseStream = gramatika::ParseStream<Token, Lexer>;
 //! #
 //! // ...
@@ -448,8 +453,12 @@ pub use span::*;
 
 pub use arcstr::{self, ArcStr, Substr};
 
+/// A type alias for [`arcstr::ArcStr`] (by default) or [`arcstr::Substr`] (if
+/// the `substr-source` feature is enabled).
 #[cfg(feature = "substr-source")]
 pub type SourceStr = Substr;
+/// A type alias for [`arcstr::ArcStr`] (by default) or [`arcstr::Substr`] (if
+/// the `substr-source` feature is enabled).
 #[cfg(not(feature = "substr-source"))]
 pub type SourceStr = ArcStr;
 

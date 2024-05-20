@@ -1,6 +1,8 @@
-//! This module defines the [`Lexer`] and [`Token`] traits that lay the
-//! groundwork for parsing with Gramatika. In this documentation, we'll look at
-//! some less trivial `Token` examples and explore how the generated lexer
+//! This module defines the [`Lexer`], [`Token`], and [`TokenStream`] types that
+//! lay the groundwork for parsing with Gramatika.
+//!
+//! In this documentation, we'll look at some less trivial `Token` examples and
+//! explore how [`TokenStream`] --- the built-in [`Lexer`] implementation ---
 //! tokenizes input.
 //!
 //! ## Defining a token
@@ -14,7 +16,7 @@
 //! # fn main() {
 //! use gramatika::{Span, Substr};
 //!
-//! #[derive(Token, Lexer, PartialEq)]
+//! #[derive(Token, PartialEq)]
 //! enum Token {
 //! #    #[discard]
 //! #    #[pattern = "//.*"]
@@ -86,8 +88,8 @@
 //!   assert_eq!(printed, "1:1..1:5");
 //!   ```
 //!
-//! When the `Token` and [`Spanned`] traits are in scope, the lexeme and span
-//! can be extracted from a `Token` without needing to pattern-match. You can
+//! When the [`Token`] and [`Spanned`] traits are in scope, the lexeme and span
+//! can be extracted from a [`Token`] without needing to pattern-match. You can
 //! also grab them both in one go with the generated `as_inner` method.
 //!
 //! ```
@@ -126,7 +128,7 @@
 //! use core::fmt;
 //! use gramatika::{Span, Spanned, Substr, Token as _, span};
 //!
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     Ident(Substr, Span),
 //! }
@@ -154,10 +156,11 @@
 //! ```
 //! [`DebugLispToken`]: gramatika_macro::DebugLispToken
 //!
-//! ## Configuring the Lexer
+//! ## Configuring Tokenization
 //!
-//! The real power of Gramatika comes from its lexer generator. Let's define a
-//! pattern for our identifier token:
+//! The real power of Gramatika comes from its compile-time code generation.
+//! Let's define a pattern for our identifier token, and import the [`Lexer`]
+//! and [`TokenStream`] types:
 //!
 //! ```
 //! # #[macro_use]
@@ -165,10 +168,10 @@
 //! #
 //! # fn main() {
 //! # use core::fmt;
-//! # use gramatika::{Span, Spanned, Substr, Token as _, span};
+//! use gramatika::{Lexer, Span, Spanned, Substr, Token as _, TokenStream, span};
 //! #
 //! // ...
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     #[pattern = "[a-zA-Z_][a-zA-Z_0-9]*"]
 //!     Ident(Substr, Span),
@@ -192,7 +195,7 @@
 //!     loremIpsum
 //!     dolor_sit_amet
 //! ";
-//! let mut lexer = Lexer::new(input.into());
+//! let mut lexer = TokenStream::<Token>::new(input.into());
 //! let tokens = lexer.scan();
 //!
 //! assert_eq!(tokens.len(), 6);
@@ -202,8 +205,9 @@
 //! ```
 //!
 //! The `#[pattern]` attribute accepts the same syntax and features as the Rust
-//! [`regex` crate]. Those patterns are compiled to [deterministic finite automata]
-//!  and used by the generated lexer to find token matches in an input string.
+//! [`regex` crate]. Those patterns are compiled to static [deterministic finite
+//! automata] and used by the [`TokenStream`] to find token matches in an input
+//! string.
 //!
 //! [`regex` crate]: https://docs.rs/regex/latest/regex/
 //! [deterministic finite automata]: https://swtch.com/~rsc/regexp/regexp1.html
@@ -224,10 +228,10 @@
 //! #
 //! # fn main() {
 //! # use core::fmt;
-//! # use gramatika::{Span, Spanned, Substr, Token as _, span};
+//! # use gramatika::{Lexer, Span, Spanned, Substr, Token as _, span, TokenStream};
 //! #
 //! // ...
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     #[pattern = "[a-zA-Z_][a-zA-Z_0-9]*"]
 //!     Ident(Substr, Span),
@@ -249,7 +253,7 @@
 //! # }
 //!
 //! let input = "foo 42";
-//! let mut lexer = Lexer::new(input.into());
+//! let mut lexer = TokenStream::<Token>::new(input.into());
 //! let tokens = lexer.scan();
 //!
 //! assert_eq!(tokens.len(), 2);
@@ -273,10 +277,10 @@
 //! #
 //! # fn main() {
 //! # use core::fmt;
-//! # use gramatika::{Span, Spanned, Substr, Token as _, span};
+//! # use gramatika::{Lexer, Span, Spanned, Substr, Token as _, TokenStream, span};
 //! #
 //! // ...
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     #[discard]
 //!     #[pattern = "//.*"]
@@ -305,7 +309,7 @@
 //!     foo // Here's another one
 //! ";
 //!
-//! let mut lexer = Lexer::new(input.into());
+//! let mut lexer = TokenStream::<Token>::new(input.into());
 //! let tokens = lexer.scan();
 //!
 //! assert_eq!(tokens.len(), 1);
@@ -325,10 +329,10 @@
 //! #
 //! # fn main() {
 //! # use core::fmt;
-//! # use gramatika::{Span, Spanned, Substr, Token as _, span};
+//! # use gramatika::{Lexer, Span, Spanned, Substr, Token as _, TokenStream, span};
 //! #
 //! // ...
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     #[discard]
 //!     #[multiline]
@@ -365,7 +369,7 @@
 //!     foo // Here's a line comment
 //! ";
 //!
-//! let mut lexer = Lexer::new(input.into());
+//! let mut lexer = TokenStream::<Token>::new(input.into());
 //! let tokens = lexer.scan();
 //!
 //! assert_eq!(tokens.len(), 1);
@@ -385,10 +389,10 @@
 //! #
 //! # fn main() {
 //! # use core::fmt;
-//! # use gramatika::{Span, Spanned, Substr, Token as _, span};
+//! # use gramatika::{Lexer, Span, Spanned, Substr, Token as _, TokenStream, span};
 //! #
 //! // ...
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     #[pattern = "if|else|for|in|switch|case|break"]
 //!     Keyword(Substr, Span),
@@ -417,7 +421,7 @@
 //!         intent
 //! ";
 //!
-//! let mut lexer = Lexer::new(input.into());
+//! let mut lexer = TokenStream::<Token>::new(input.into());
 //! let tokens = lexer.scan();
 //!
 //! assert_eq!(tokens, vec![
@@ -442,10 +446,10 @@
 //! #
 //! # fn main() {
 //! # use core::fmt;
-//! # use gramatika::{Span, Spanned, Substr, Token as _, span};
+//! # use gramatika::{Lexer, Span, Spanned, Substr, Token as _, TokenStream, span};
 //! #
 //! // ...
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     #[subset_of(Ident)]
 //!     #[pattern = "if|else|for|in|switch|case|break"]
@@ -475,7 +479,7 @@
 //!         intent
 //! ";
 //!
-//! let mut lexer = Lexer::new(input.into());
+//! let mut lexer = TokenStream::<Token>::new(input.into());
 //! let tokens = lexer.scan();
 //!
 //! assert_eq!(tokens, vec![
@@ -502,10 +506,10 @@
 //! #
 //! # fn main() {
 //! # use core::fmt;
-//! # use gramatika::{Span, Spanned, Substr, Token as _, span};
+//! # use gramatika::{Lexer, Span, Spanned, Substr, Token as _, TokenStream, span};
 //! #
 //! // ...
-//! #[derive(Token, Lexer, DebugLispToken, PartialEq)]
+//! #[derive(Token, DebugLispToken, PartialEq)]
 //! enum Token {
 //!     #[pattern = r"[0-9]*\.[0-9]+"]
 //!     #[pattern = r"[0-9]+\.[0-9]*"]
@@ -533,7 +537,7 @@
 //!     50.
 //! ";
 //!
-//! let mut lexer = Lexer::new(input.into());
+//! let mut lexer = TokenStream::<Token>::new(input.into());
 //! let tokens = lexer.scan();
 //!
 //! assert_eq!(tokens, vec![
@@ -544,9 +548,9 @@
 //! # }
 //! ```
 //! The pattern above is exactly equivalent to `[0-9]*\.[0-9]+|[0-9]+\.[0-9]*`,
-//! but by putting them on separate lines we can more easily tell the difference
-//! between them (the first makes the digits _before_ the `.` optional, while
-//! the second does the same for digits _after_ the `.`).
+//! but by splitting the pattern into separate lines we can more easily tell the
+//! difference between the two alternations (the first makes the digits _before_
+//! the `.` optional, while the second does the same for digits _after_ the `.`).
 //!
 
 use std::{collections::HashSet, fmt, hash::Hash, marker::PhantomData};
@@ -614,7 +618,6 @@ pub trait Lexer {
 	}
 }
 
-// TODO
 /// Experimental
 #[doc(hidden)]
 pub trait PartialLexer {
@@ -647,17 +650,31 @@ where Self: Clone + Spanned
 {
 	type Kind: Copy + fmt::Debug + PartialEq + Eq + Hash + 'static;
 
-	// TODO: Docs
+	/// Find the first match for this token in a [`str`] slice, returning the
+	/// start and end byte offsets and the matching [`Kind`](Token::Kind).
 	fn find<S>(input: S) -> Option<(usize, usize, Self::Kind)>
 	where S: AsRef<str>;
 
-	// TODO: Docs
+	/// Construct a token from its constituent parts.
 	fn from_parts(kind: Self::Kind, substr: Substr, span: Span) -> Self;
 
-	// TODO: Docs
+	/// Returns the set of this token's variants which should be treated as
+	/// multi-line patterns (i.e., the `.` character in regex patterns should
+	/// match `\n` characters).
+	///
+	/// When using the [derive macro], returns the variants annotated with the
+	/// `#[multiline]` attribute.
+	///
+	/// [derive macro]: macro@crate::Token
 	fn multilines() -> &'static HashSet<Self::Kind>;
 
-	// TODO: Docs
+	/// Returns the set of this token's variants which should be discarded by the
+	/// lexer when scanning.
+	///
+	/// When using the [derive macro], returns the variants annotated with the
+	/// `#[discard]` attribute.
+	///
+	/// [derive macro]: macro@crate::Token
 	fn discards() -> &'static HashSet<Self::Kind>;
 
 	/// Returns the actual text content of a token.
@@ -668,11 +685,11 @@ where Self: Clone + Spanned
 	///
 	/// use gramatika::{
 	///     arcstr::literal_substr,
-	///     Substr, Span, Token as _,
+	///     Lexer, Substr, Span, Token as _, TokenStream,
 	/// };
 	///
 	/// # fn main() {
-	/// #[derive(Token, Lexer)]
+	/// #[derive(Token)]
 	/// enum Token {
 	///     #[subset_of(Ident)]
 	///     #[pattern = "var"]
@@ -692,7 +709,7 @@ where Self: Clone + Spanned
 	/// }
 	///
 	/// let src = "var the_answer = 42;";
-	/// let tokens = Lexer::new(src.into()).scan();
+	/// let tokens = TokenStream::<Token>::new(src.into()).scan();
 	///
 	/// assert_eq!(tokens[1].lexeme(), literal_substr!("the_answer"));
 	/// # }
@@ -712,17 +729,17 @@ where Self: Clone + Spanned
 	/// #[macro_use]
 	/// extern crate gramatika;
 	///
-	/// use gramatika::{Substr, Span, Token as _};
+	/// use gramatika::{Lexer, Substr, Span, Token as _, TokenStream};
 	///
 	/// # fn main() {
-	/// #[derive(Token, Lexer)]
+	/// #[derive(Token)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
 	/// }
 	///
 	/// let input = "foo";
-	/// let token = Lexer::new(input.into())
+	/// let token = TokenStream::<Token>::new(input.into())
 	///     .scan_token()
 	///     .expect("Expected to match Ident `foo`");
 	///
@@ -744,17 +761,17 @@ where Self: Clone + Spanned
 	/// #[macro_use]
 	/// extern crate gramatika;
 	///
-	/// use gramatika::{Substr, Span, Token as _};
+	/// use gramatika::{Lexer, Substr, Span, Token as _, TokenStream};
 	///
 	/// # fn main() {
-	/// #[derive(Token, Lexer)]
+	/// #[derive(Token)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
 	/// }
 	///
 	/// let input = "foo";
-	/// let token = Lexer::new(input.into())
+	/// let token = TokenStream::<Token>::new(input.into())
 	///     .scan_token()
 	///     .expect("Expected to match Ident `foo`");
 	///
@@ -764,7 +781,7 @@ where Self: Clone + Spanned
 	fn as_matchable(&self) -> (Self::Kind, &str, Span);
 }
 
-// TODO: Docs
+/// A concrete implementation of the [`Lexer`] interface.
 pub struct TokenStream<T> {
 	input: SourceStr,
 	remaining: Substr,
