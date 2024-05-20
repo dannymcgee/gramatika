@@ -2,7 +2,7 @@ use core::fmt;
 
 use arcstr::Substr;
 
-use crate::{Lexer, Position, Result, Span, Spanned, SpannedError, Token};
+use crate::{Lexer, Position, Result, SourceStr, Span, Spanned, SpannedError, Token};
 
 pub type TokenCtor<T> = fn(Substr, Span) -> T;
 
@@ -576,7 +576,7 @@ where
 	T: Token + Spanned,
 	L: Lexer<Output = T>,
 {
-	input: Substr,
+	input: SourceStr,
 	lexer: L,
 	peek: Option<T>,
 	tokens: Vec<T>,
@@ -596,11 +596,11 @@ where
 		}
 	}
 
-	pub fn source(&self) -> Substr {
+	pub fn source(&self) -> SourceStr {
 		self.input.clone()
 	}
 
-	pub fn into_inner(self) -> (Substr, Vec<T>) {
+	pub fn into_inner(self) -> (SourceStr, Vec<T>) {
 		(self.input, self.tokens)
 	}
 
@@ -1013,7 +1013,7 @@ where
 
 impl<S, T, L> From<S> for ParseStream<T, L>
 where
-	S: Into<Substr>,
+	S: Into<SourceStr>,
 	T: Token + Spanned,
 	L: Lexer<Output = T>,
 {

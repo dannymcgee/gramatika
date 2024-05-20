@@ -19,7 +19,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 		use ::gramatika::Lexer as _;
 
 		#vis struct #lexer_ident {
-			input: ::gramatika::Substr,
+			input: ::gramatika::SourceStr,
 			remaining: ::gramatika::Substr,
 			current: ::gramatika::Position,
 			lookahead: ::gramatika::Position,
@@ -37,7 +37,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 		impl ::gramatika::Lexer for #lexer_ident {
 			type Output = #enum_ident;
 
-			fn new(input: ::gramatika::Substr) -> Self {
+			fn new(input: ::gramatika::SourceStr) -> Self {
 				Self {
 					remaining: input.substr(..),
 					input,
@@ -58,7 +58,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 				self
 			}
 
-			fn source(&self) -> ::gramatika::Substr {
+			fn source(&self) -> ::gramatika::SourceStr {
 				self.input.clone()
 			}
 

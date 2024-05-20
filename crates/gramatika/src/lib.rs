@@ -448,6 +448,11 @@ pub use span::*;
 
 pub use arcstr::{self, ArcStr, Substr};
 
+#[cfg(feature = "substr-source")]
+pub type SourceStr = Substr;
+#[cfg(not(feature = "substr-source"))]
+pub type SourceStr = ArcStr;
+
 #[cfg(feature = "macros")]
 pub use gramatika_macro::*;
 

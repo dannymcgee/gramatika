@@ -25,3 +25,7 @@ macros = [
 	"once_cell",
 	"regex-automata",
 ]
+# Use `arcstr::Substr` instead of `arcstr::ArcStr` as the "source" type for
+# input text. This opens the possibility for some advanced use cases, like
+# using a different parser to process some portions of a text document.
+substr-source = []

@@ -553,7 +553,7 @@ use std::{collections::HashSet, fmt, hash::Hash, marker::PhantomData};
 
 use arcstr::Substr;
 
-use crate::{Position, Span, Spanned};
+use crate::{Position, SourceStr, Span, Spanned};
 
 /// A lexer (AKA scanner, AKA tokenizer) is the piece of the parsing toolchain
 /// that takes raw input (e.g., the text of a source file) and "scans" it into
@@ -574,7 +574,7 @@ pub trait Lexer {
 	/// [`Output`] tokens.
 	///
 	/// [`Output`]: Lexer::Output
-	fn new(input: Substr) -> Self;
+	fn new(input: SourceStr) -> Self;
 
 	/// Experimental
 	#[doc(hidden)]
@@ -587,8 +587,8 @@ pub trait Lexer {
 		self
 	}
 
-	/// Returns an owned copy of the input [`Substr`] this lexer is scanning.
-	fn source(&self) -> Substr;
+	/// Returns an owned copy of the input [`SourceStr`] this lexer is scanning.
+	fn source(&self) -> SourceStr;
 
 	/// Scans a single token from the input.
 	///
@@ -620,7 +620,7 @@ pub trait Lexer {
 pub trait PartialLexer {
 	/// Initialize a new lexer from the state of some previous one that was
 	/// interrupted.
-	fn from_remaining(input: Substr, position: Position) -> Self;
+	fn from_remaining(input: SourceStr, position: Position) -> Self;
 
 	/// Consumes the lexer, returning the remaining (unscanned) portion of the
 	/// input and the current cursor position.
@@ -766,7 +766,7 @@ where Self: Clone + Spanned
 
 // TODO: Docs
 pub struct TokenStream<T> {
-	input: Substr,
+	input: SourceStr,
 	remaining: Substr,
 	current: Position,
 	lookahead: Position,
@@ -778,7 +778,7 @@ where T: Token
 {
 	type Output = T;
 
-	fn new(input: Substr) -> Self {
+	fn new(input: SourceStr) -> Self {
 		Self {
 			remaining: input.substr(..),
 			input,
@@ -788,7 +788,7 @@ where T: Token
 		}
 	}
 
-	fn source(&self) -> Substr {
+	fn source(&self) -> SourceStr {
 		self.input.clone()
 	}
 
@@ -868,9 +868,9 @@ where T: Token
 }
 
 impl<T> PartialLexer for TokenStream<T> {
-	fn from_remaining(input: Substr, position: Position) -> Self {
+	fn from_remaining(input: SourceStr, position: Position) -> Self {
 		Self {
-			remaining: input.clone(),
+			remaining: input.substr(..),
 			input,
 			current: position,
 			lookahead: position,

@@ -1,13 +1,11 @@
 use std::fmt;
 
-use arcstr::Substr;
-
-use crate::{DebugLisp, DebugLispStruct, Span};
+use crate::{DebugLisp, DebugLispStruct, SourceStr, Span};
 
 #[derive(Clone)]
 pub struct SpannedError {
 	pub message: String,
-	pub source: Substr,
+	pub source: SourceStr,
 	pub span: Option<Span>,
 }
 
