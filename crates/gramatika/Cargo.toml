@@ -1,6 +1,6 @@
 [package]
 name = "gramatika"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
 authors = ["Danny McGee <dannymcgee@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -14,7 +14,7 @@ once_cell = { version = "1.8", optional = true }
 regex-automata = { version = "0.1", optional = true }
 
 [dependencies.gramatika-macro]
-version = "0.5.1"
+version = "0.6.0"
 path = "../gramatika-macro"
 optional = true
 
@@ -25,3 +25,7 @@ macros = [
 	"once_cell",
 	"regex-automata",
 ]
+# Use `arcstr::Substr` instead of `arcstr::ArcStr` as the "source" type for
+# input text. This opens the possibility for some advanced use cases, like
+# using a different parser to process some portions of a text document.
+substr-source = []

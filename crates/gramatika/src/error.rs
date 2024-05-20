@@ -1,19 +1,17 @@
 use std::fmt;
 
-use arcstr::ArcStr;
-
-use crate::{DebugLisp, DebugLispStruct, Span};
+use crate::{DebugLisp, DebugLispStruct, SourceStr, Span};
 
 #[derive(Clone)]
 pub struct SpannedError {
 	pub message: String,
-	pub source: ArcStr,
+	pub source: SourceStr,
 	pub span: Option<Span>,
 }
 
-impl std::error::Error for SpannedError {}
-
 pub type Result<T> = std::result::Result<T, SpannedError>;
+
+impl std::error::Error for SpannedError {}
 
 impl fmt::Display for SpannedError {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

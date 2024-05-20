@@ -1,6 +1,6 @@
 #![allow(unused_macros, dead_code)]
 
-use std::fmt;
+use std::{collections::HashSet, fmt};
 
 use arcstr::Substr;
 use gramatika::{
@@ -59,24 +59,6 @@ macro_rules! hash_set {
 	() => {
 		::std::collections::HashSet::default()
 	};
-}
-
-impl TokenKind {
-	pub(crate) fn discards() -> &'static ::std::collections::HashSet<TokenKind> {
-		use ::std::collections::HashSet;
-
-		static DISCARDS: OnceCell<HashSet<TokenKind>> = OnceCell::new();
-
-		DISCARDS
-			.get_or_init(|| hash_set![TokenKind::LineComment, TokenKind::BlockComment])
-	}
-	pub(crate) fn multilines() -> &'static ::std::collections::HashSet<TokenKind> {
-		use ::std::collections::HashSet;
-
-		static MULTILINES: OnceCell<HashSet<TokenKind>> = OnceCell::new();
-
-		MULTILINES.get_or_init(|| hash_set![TokenKind::BlockComment])
-	}
 }
 
 type PatternMatcher = Regex<DenseDFA<Vec<u32>, u32>>;
@@ -395,6 +377,44 @@ impl Clone for Token {
 
 impl gramatika::Token for Token {
 	type Kind = TokenKind;
+
+	fn find<S>(input: S) -> Option<(usize, usize, TokenKind)>
+	where S: AsRef<str> {
+		let input = input.as_ref();
+		None.or_else(|| Self::match_line_comment(input))
+			.or_else(|| Self::match_block_comment(input))
+			.or_else(|| Self::match_ident(input))
+			.or_else(|| Self::match_brace(input))
+			.or_else(|| Self::match_punct(input))
+			.or_else(|| Self::match_operator(input))
+			.or_else(|| Self::match_num_lit(input))
+			.or_else(|| Self::match_str_lit(input))
+	}
+
+	fn from_parts(kind: TokenKind, substr: Substr, span: Span) -> Self {
+		match kind {
+			TokenKind::LineComment => Self::LineComment(substr, span),
+			TokenKind::BlockComment => Self::BlockComment(substr, span),
+			TokenKind::Keyword => Self::Keyword(substr, span),
+			TokenKind::Ident => Self::Ident(substr, span),
+			TokenKind::Brace => Self::Brace(substr, span),
+			TokenKind::Punct => Self::Punct(substr, span),
+			TokenKind::Operator => Self::Operator(substr, span),
+			TokenKind::NumLit => Self::NumLit(substr, span),
+			TokenKind::StrLit => Self::StrLit(substr, span),
+		}
+	}
+
+	fn multilines() -> &'static HashSet<Self::Kind> {
+		static MULTILINES: OnceCell<HashSet<TokenKind>> = OnceCell::new();
+		MULTILINES.get_or_init(|| hash_set![TokenKind::BlockComment])
+	}
+
+	fn discards() -> &'static HashSet<Self::Kind> {
+		static DISCARDS: OnceCell<HashSet<TokenKind>> = OnceCell::new();
+		DISCARDS
+			.get_or_init(|| hash_set![TokenKind::LineComment, TokenKind::BlockComment])
+	}
 
 	fn lexeme(&self) -> Substr {
 		self.as_inner().0

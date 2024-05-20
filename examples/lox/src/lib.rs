@@ -10,12 +10,13 @@ mod stmt;
 mod tokens;
 
 use stmt::Program;
-pub use tokens::Lexer;
+// pub use tokens::Lexer;
 use tokens::Token;
 
 use gramatika::ParseStreamer;
 
-type ParseStream = gramatika::ParseStream<Token, Lexer>;
+pub type TokenStream = gramatika::TokenStream<Token>;
+type ParseStream = gramatika::ParseStream<Token, TokenStream>;
 
 pub fn parse(input: String) -> gramatika::Result<Program> {
 	ParseStream::from(input).parse()

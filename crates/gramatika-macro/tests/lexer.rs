@@ -5,7 +5,7 @@ extern crate gramatika_macro;
 #[macro_use]
 extern crate gramatika;
 
-use gramatika::{Lexer as _, ParseStreamer, Span, Substr};
+use gramatika::{Lexer as _, ParseStreamer, Span, Substr, TokenStream};
 
 /// Expected output:
 ///
@@ -95,7 +95,7 @@ use gramatika::{Lexer as _, ParseStreamer, Span, Substr};
 
 // ...
 
-#[derive(Debug, Token, Lexer, PartialEq)]
+#[derive(Debug, Token, PartialEq)]
 enum Token {
 	#[subset_of(Ident)]
 	#[pattern = "let|var|if|for|while|return"]
@@ -112,24 +112,16 @@ enum Token {
 
 	#[pattern = "[0-9]+"]
 	Literal(Substr, Span),
-
-	OverrideTest(Substr, Span),
 }
 
 fn main() {
 	let input = "let foo = 2 + 2;";
-	let mut lexer = Lexer::new(input.into()).with_runtime_matcher(|s| {
-		if s.len() >= 3 && &s[..3] == "foo" {
-			Some((3, TokenKind::OverrideTest))
-		} else {
-			None
-		}
-	});
+	let mut lexer = TokenStream::<Token>::new(input.into());
 	let tokens = lexer.scan();
 
 	let expected = vec![
 		Token::keyword("let".into(), span![1:1..1:4]),
-		Token::override_test("foo".into(), span![1:5..1:8]),
+		Token::ident("foo".into(), span![1:5..1:8]),
 		Token::operator("=".into(), span![1:9..1:10]),
 		Token::literal("2".into(), span![1:11..1:12]),
 		Token::operator("+".into(), span![1:13..1:14]),

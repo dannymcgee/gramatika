@@ -1,8 +1,8 @@
 use core::fmt;
 
-use arcstr::{ArcStr, Substr};
+use arcstr::Substr;
 
-use crate::{Lexer, Position, Result, Span, Spanned, SpannedError, Token};
+use crate::{Lexer, Position, Result, SourceStr, Span, Spanned, SpannedError, Token};
 
 pub type TokenCtor<T> = fn(Substr, Span) -> T;
 
@@ -46,12 +46,12 @@ pub trait ParseStreamer {
 	/// #
 	/// # use gramatika::{
 	/// #     Parse, ParseStream, ParseStreamer,
-	/// #     Substr, Span, Token as _,
+	/// #     Substr, Span, Token as _, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug)]
+	/// #[derive(Token, Debug)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
@@ -62,7 +62,7 @@ pub trait ParseStreamer {
 	///
 	/// impl Parse for IdentExpr {
 	///     // ...
-	/// #     type Stream = ParseStream<Token, Lexer>;
+	/// #     type Stream = ParseStream<Token, TokenStream<Token>>;
 	/// #
 	/// #     fn parse(input: &mut Self::Stream) -> gramatika::Result<Self> {
 	/// #         Ok(Self(input.consume_kind(TokenKind::Ident)?))
@@ -95,20 +95,20 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
-	/// #     Substr, Span, Token as _,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug)]
+	/// #[derive(Token, Debug)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
 	/// }
 	///
 	/// let input = "foo";
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	/// assert!(parser.peek().is_some());
 	///
 	/// match parser.peek() {
@@ -139,20 +139,20 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
-	/// #     Substr, Span, Token as _,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
 	/// }
 	///
 	/// let input = "foo";
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	/// assert!(parser.prev().is_none());
 	///
 	/// let foo = parser.consume_kind(TokenKind::Ident)?;
@@ -174,13 +174,13 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
-	/// #     Substr, Span, Token as _,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
@@ -189,7 +189,7 @@ pub trait ParseStreamer {
 	/// }
 	///
 	/// let input = "foo";
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	/// assert_eq!(
 	///     parser.check_kind(TokenKind::Unrecognized),
 	///     false,
@@ -216,20 +216,20 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
-	/// #     Substr, Span, Token as _,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[pattern = "[-+*/=<>]"]
 	///     Operator(Substr, Span),
 	/// }
 	///
 	/// let input = "=";
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	/// assert_eq!(
 	///     parser.check(operator![>]),
 	///     false,
@@ -256,20 +256,20 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
-	/// #     Substr, Span, Token as _,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[pattern = "[-+*/=<>]"]
 	///     Operator(Substr, Span),
 	/// }
 	///
 	/// let input = "=<";
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	///
 	/// let eq = parser.consume(operator![=]);
 	/// assert!(eq.is_ok());
@@ -301,13 +301,13 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
-	/// #     Substr, Span, Token as _,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
+	/// #     Substr, Span, Token as _, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[pattern = "[-+*/<>]"]
 	///     Operator(Substr, Span),
@@ -317,7 +317,7 @@ pub trait ParseStreamer {
 	/// }
 	///
 	/// let input = "2++";
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	///
 	/// let lhs = parser.consume_kind(TokenKind::Number);
 	/// assert!(lhs.is_ok());
@@ -357,14 +357,14 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
 	/// #     Substr, Span, Token as _,
-	/// #     SpannedError,
+	/// #     SpannedError, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[subset_of(Ident)]
 	///     #[pattern = "func|struct"]
@@ -385,7 +385,7 @@ pub trait ParseStreamer {
 	///     func bar() {}
 	/// "#;
 	///
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	///
 	/// while let Some(token) = parser.next() {
 	///     use TokenKind::*;
@@ -436,14 +436,14 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
 	/// #     Substr, Span, Token as _,
-	/// #     SpannedError,
+	/// #     SpannedError, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
@@ -459,7 +459,7 @@ pub trait ParseStreamer {
 	///
 	/// let input = "foo = bar()";
 	///
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	///
 	/// let lhs = parser.consume_kind(TokenKind::Ident)?;
 	/// let eq = parser.consume(eq![=])?;
@@ -505,14 +505,14 @@ pub trait ParseStreamer {
 	/// # extern crate gramatika;
 	/// #
 	/// # use gramatika::{
-	/// #     Parse, ParseStream, ParseStreamer,
+	/// #     Lexer, Parse, ParseStream, ParseStreamer,
 	/// #     Substr, Span, Token as _,
-	/// #     SpannedError,
+	/// #     SpannedError, TokenStream,
 	/// # };
 	/// #
 	/// # fn main() -> gramatika::Result<()> {
 	/// // ...
-	/// #[derive(Token, Lexer, Debug, PartialEq)]
+	/// #[derive(Token, Debug, PartialEq)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
@@ -528,7 +528,7 @@ pub trait ParseStreamer {
 	///
 	/// let input = "foo = bar()";
 	///
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	///
 	/// let lhs = parser.consume_kind(TokenKind::Ident)?;
 	/// let eq = parser.consume(eq![=])?;
@@ -559,24 +559,25 @@ pub trait ParseStreamer {
 /// A concrete implementation of the [`ParseStreamer`] interface.
 ///
 /// For most applications, it should be sufficient to use this type as the
-/// "engine" for your parser, by deriving [`Token`] and [`Lexer`] for an enum
-/// type representing your language's tokens[^note], and using
-/// `ParseStream<T, L>` as the [`Stream`] type for your syntax tree's [`Parse`]
-/// implementations, where `T` is your concrete token type and `L` is your
-/// generated lexer.
+/// "engine" for your parser, by deriving [`Token`] for an enum type
+/// representing your language's tokens, and using `ParseStream<T, L>` as the
+/// [`Stream`] type for your syntax tree's [`Parse`] implementations, where `T`
+/// is your concrete token type and `L` is either the built-in [`TokenStream`]
+/// type or a custom [`Lexer`] implementation.
 ///
 /// See the [crate-level documentation] and the [`lexer`](crate::lexer)
 /// documentation for examples and (much) more detail, and see the
 /// [`ParseStreamer`] documentation for an overview of this type's public API.
 ///
 /// [`Stream`]: Parse::Stream
+/// [`TokenStream`]: crate::lexer::TokenStream
 /// [crate-level documentation]: crate
 pub struct ParseStream<T, L>
 where
 	T: Token + Spanned,
 	L: Lexer<Output = T>,
 {
-	input: ArcStr,
+	input: SourceStr,
 	lexer: L,
 	peek: Option<T>,
 	tokens: Vec<T>,
@@ -596,11 +597,11 @@ where
 		}
 	}
 
-	pub fn source(&self) -> ArcStr {
-		ArcStr::clone(&self.input)
+	pub fn source(&self) -> SourceStr {
+		self.input.clone()
 	}
 
-	pub fn into_inner(self) -> (ArcStr, Vec<T>) {
+	pub fn into_inner(self) -> (SourceStr, Vec<T>) {
 		(self.input, self.tokens)
 	}
 
@@ -616,9 +617,9 @@ where
 	/// ```
 	/// # #[macro_use] extern crate gramatika_macro;
 	/// # fn main () {
-	/// use gramatika::{span, Substr, Span, ParseStream, ParseStreamer};
+	/// use gramatika::{span, Lexer, Substr, Span, ParseStream, ParseStreamer, TokenStream};
 	///
-	/// #[derive(Token, Lexer, Debug, PartialEq, Eq)]
+	/// #[derive(Token, Debug, PartialEq, Eq)]
 	/// enum Token {
 	///     #[pattern = "ab"]
 	///     Ab(Substr, Span),
@@ -629,7 +630,7 @@ where
 	/// }
 	///
 	/// let input = "ab";
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::<Token, TokenStream<Token>>::from(input);
 	///
 	/// assert_eq!(parser.peek(), Some(&Token::Ab("ab".into(), span![1:1..1:3])));
 	///
@@ -649,9 +650,11 @@ where
 	/// ```
 	/// # #[macro_use] extern crate gramatika_macro;
 	/// # fn main () {
-	/// use gramatika::{Result, Parse, ParseStream, ParseStreamer, Span, Substr};
+	/// use gramatika::{
+	///     Lexer, Result, Parse, ParseStreamer, Span, Substr, TokenStream,
+	/// };
 	///
-	/// #[derive(Token, Lexer, Debug, PartialEq, Eq)]
+	/// #[derive(Token, Debug, PartialEq, Eq)]
 	/// enum Token {
 	///     #[pattern = "[a-zA-Z_][a-zA-Z0-9_]*"]
 	///     Ident(Substr, Span),
@@ -661,6 +664,8 @@ where
 	///     #[pattern = "[%*/~^]"]
 	///     Operator(Substr, Span),
 	/// }
+	///
+	/// type ParseStream = gramatika::ParseStream<Token, TokenStream<Token>>;
 	///
 	/// #[derive(Debug)]
 	/// struct Good {
@@ -675,7 +680,7 @@ where
 	/// }
 	///
 	/// impl Parse for Bad {
-	///     type Stream = ParseStream<Token, Lexer>;
+	///     type Stream = ParseStream;
 	///
 	///     fn parse(input: &mut Self::Stream) -> Result<Self> {
 	///         let mut result = Bad {
@@ -694,7 +699,7 @@ where
 	/// }
 	///
 	/// impl Parse for Good {
-	///     type Stream = ParseStream<Token, Lexer>;
+	///     type Stream = ParseStream;
 	///
 	///     fn parse(input: &mut Self::Stream) -> Result<Self> {
 	///         let mut result = Good {
@@ -719,7 +724,7 @@ where
 	///
 	/// let input = "Foo<Bar<Baz>>";
 	///
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::from(input);
 	/// let bad = parser.parse::<Bad>();
 	/// assert!(bad.is_err());
 	///
@@ -732,7 +737,7 @@ where
 	///   |            ^-
 	/// ");
 	///
-	/// let mut parser = ParseStream::<Token, Lexer>::from(input);
+	/// let mut parser = ParseStream::from(input);
 	/// let good = parser.parse::<Good>();
 	/// assert!(good.is_ok());
 	/// # }
@@ -1013,13 +1018,13 @@ where
 
 impl<S, T, L> From<S> for ParseStream<T, L>
 where
-	S: Into<ArcStr>,
+	S: Into<SourceStr>,
 	T: Token + Spanned,
 	L: Lexer<Output = T>,
 {
 	fn from(input: S) -> Self {
 		let input = input.into();
-		let lexer = L::new(ArcStr::clone(&input));
+		let lexer = L::new(input.clone());
 
 		Self {
 			input,

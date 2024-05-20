@@ -2,7 +2,7 @@ use std::fmt;
 
 use gramatika::{DebugLisp, Span, Substr, Token as _};
 
-#[derive(DebugLispToken, PartialEq, Token, Lexer)]
+#[derive(DebugLispToken, PartialEq, Token)]
 pub enum Token {
 	#[discard]
 	#[pattern = "//.*"]
